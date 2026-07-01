@@ -9,10 +9,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankAccountCreateRequest;
-import family.fisa.hangangpay.client.bank.dto.BankAccountResponse;
-import family.fisa.hangangpay.domain.account.dto.AccountCreateRequest;
-import family.fisa.hangangpay.domain.account.dto.AccountResponse;
+import family.fisa.hangangpay.client.bank.dto.request.BankAccountCreateRequest;
+import family.fisa.hangangpay.client.bank.dto.response.BankAccountResponse;
+import family.fisa.hangangpay.domain.account.dto.request.AccountCreateRequest;
+import family.fisa.hangangpay.domain.account.dto.response.AccountResponse;
 import family.fisa.hangangpay.domain.account.entity.Account;
 import family.fisa.hangangpay.domain.account.repository.AccountRepository;
 import family.fisa.hangangpay.domain.institution.entity.Institution;

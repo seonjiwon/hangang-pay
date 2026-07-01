@@ -1,7 +1,7 @@
 package family.fisa.hangangpay.domain.transaction.service.charge.v1;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.ChargeResponse;
+import family.fisa.hangangpay.client.bank.dto.response.ChargeResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeIntentCreateRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ChargeExecuteResponse;

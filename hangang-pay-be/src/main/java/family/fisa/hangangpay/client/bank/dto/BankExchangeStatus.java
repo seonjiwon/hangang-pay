@@ -1,5 +1,7 @@
 package family.fisa.hangangpay.client.bank.dto;
 
+import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
+
 /** bank 환전 상태 조회(GET) 결과 */
 public record BankExchangeStatus(Status status, Long bankTransactionId) {
     public enum Status {

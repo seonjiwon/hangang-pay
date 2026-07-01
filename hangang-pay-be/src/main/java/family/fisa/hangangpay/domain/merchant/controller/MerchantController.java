@@ -1,15 +1,15 @@
 package family.fisa.hangangpay.domain.merchant.controller;
 
-import family.fisa.hangangpay.client.bank.dto.MerchantRedeemInitResponse;
-import family.fisa.hangangpay.domain.account.dto.MerchantAccountUpdateRequest;
-import family.fisa.hangangpay.domain.account.dto.MerchantAccountUpdateResponse;
+import family.fisa.hangangpay.client.bank.dto.response.MerchantRedeemInitResponse;
+import family.fisa.hangangpay.domain.account.dto.request.MerchantAccountUpdateRequest;
+import family.fisa.hangangpay.domain.account.dto.response.MerchantAccountUpdateResponse;
 import family.fisa.hangangpay.domain.account.service.AccountCommandService;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantDashboardResponse;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantInfoResponse;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantMyPageResponse;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantPaymentDetailResponse;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantQrResponse;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantSettlementHistoryItem;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantDashboardResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantInfoResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantMyPageResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantPaymentDetailResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantQrResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantSettlementHistoryItem;
 import family.fisa.hangangpay.domain.merchant.service.MerchantQrService;
 import family.fisa.hangangpay.domain.merchant.service.MerchantQueryService;
 import family.fisa.hangangpay.domain.transaction.code.TransactionSuccessCode;

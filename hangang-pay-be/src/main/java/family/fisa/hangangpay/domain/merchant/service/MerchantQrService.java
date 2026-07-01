@@ -11,7 +11,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
 import family.fisa.hangangpay.domain.merchant.dto.MerchantQrPayload;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantQrResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantQrResponse;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.global.exception.BusinessException;

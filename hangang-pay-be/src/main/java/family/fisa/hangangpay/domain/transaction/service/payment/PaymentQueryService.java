@@ -1,6 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.service.payment;
 
-import family.fisa.hangangpay.domain.merchant.dto.MerchantPaymentDetailResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantPaymentDetailResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.MerchantPaymentDetail;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.MerchantPaymentHistoryItem;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentHistoryItem;

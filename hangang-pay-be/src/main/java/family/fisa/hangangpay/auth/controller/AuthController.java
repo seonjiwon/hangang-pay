@@ -1,8 +1,8 @@
 package family.fisa.hangangpay.auth.controller;
 
-import family.fisa.hangangpay.auth.dto.LoginRequest;
-import family.fisa.hangangpay.auth.dto.LoginResponse;
-import family.fisa.hangangpay.auth.dto.MerchantLoginRequest;
+import family.fisa.hangangpay.auth.dto.request.LoginRequest;
+import family.fisa.hangangpay.auth.dto.request.MerchantLoginRequest;
+import family.fisa.hangangpay.auth.dto.response.LoginResponse;
 import family.fisa.hangangpay.auth.service.AuthService;
 import family.fisa.hangangpay.global.code.success.GeneralSuccessCode;
 import family.fisa.hangangpay.global.response.ApiResponse;

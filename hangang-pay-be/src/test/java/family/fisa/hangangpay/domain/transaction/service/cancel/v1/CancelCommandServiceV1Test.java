@@ -14,8 +14,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankTransactionStatusResponse;
-import family.fisa.hangangpay.client.bank.dto.CancelResponse;
+import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.dto.response.CancelResponse;
 import family.fisa.hangangpay.domain.party.entity.Party;
 import family.fisa.hangangpay.domain.party.entity.PartyType;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;

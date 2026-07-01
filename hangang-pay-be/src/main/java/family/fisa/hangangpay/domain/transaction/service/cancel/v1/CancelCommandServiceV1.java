@@ -1,8 +1,8 @@
 package family.fisa.hangangpay.domain.transaction.service.cancel.v1;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankTransactionStatusResponse;
-import family.fisa.hangangpay.client.bank.dto.CancelResponse;
+import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.dto.response.CancelResponse;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpay.domain.transaction.dto.bank.BankOutcome;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentCancelRequest;

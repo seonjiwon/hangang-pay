@@ -1,7 +1,7 @@
 package family.fisa.hangangpay.domain.wallet.controller;
 
 import family.fisa.hangangpay.domain.wallet.code.WalletSuccessCode;
-import family.fisa.hangangpay.domain.wallet.dto.WalletBalanceResponse;
+import family.fisa.hangangpay.domain.wallet.dto.response.WalletBalanceResponse;
 import family.fisa.hangangpay.domain.wallet.service.WalletQueryService;
 import family.fisa.hangangpay.global.response.ApiResponse;
 import family.fisa.hangangpay.global.session.SessionAttributeNames;

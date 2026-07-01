@@ -1,10 +1,10 @@
 package family.fisa.hangangpay.auth.controller;
 
-import family.fisa.hangangpay.auth.dto.AccountSendRequest;
-import family.fisa.hangangpay.auth.dto.AccountVerifyRequest;
-import family.fisa.hangangpay.auth.dto.SmsSendRequest;
-import family.fisa.hangangpay.auth.dto.SmsVerifyRequest;
-import family.fisa.hangangpay.auth.dto.VerificationCodeResponse;
+import family.fisa.hangangpay.auth.dto.request.AccountSendRequest;
+import family.fisa.hangangpay.auth.dto.request.AccountVerifyRequest;
+import family.fisa.hangangpay.auth.dto.request.SmsSendRequest;
+import family.fisa.hangangpay.auth.dto.request.SmsVerifyRequest;
+import family.fisa.hangangpay.auth.dto.response.VerificationCodeResponse;
 import family.fisa.hangangpay.auth.service.VerificationService;
 import family.fisa.hangangpay.global.code.success.GeneralSuccessCode;
 import family.fisa.hangangpay.global.response.ApiResponse;

@@ -1,6 +1,8 @@
 package family.fisa.hangangpay.client.bank;
 
 import family.fisa.hangangpay.client.bank.dto.*;
+import family.fisa.hangangpay.client.bank.dto.request.*;
+import family.fisa.hangangpay.client.bank.dto.response.*;
 
 public interface BankClient {
 

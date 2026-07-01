@@ -1,14 +1,14 @@
 package family.fisa.hangangpay.auth.controller;
 
 import family.fisa.hangangpay.auth.code.AuthSuccessCode;
-import family.fisa.hangangpay.auth.dto.UserRegisterRequest;
-import family.fisa.hangangpay.auth.dto.UserRegisterResponse;
+import family.fisa.hangangpay.auth.dto.request.UserRegisterRequest;
+import family.fisa.hangangpay.auth.dto.response.UserRegisterResponse;
 import family.fisa.hangangpay.auth.service.BusinessInfoQueryService;
 import family.fisa.hangangpay.auth.service.MerchantRegistrationService;
 import family.fisa.hangangpay.auth.service.UserRegistrationService;
-import family.fisa.hangangpay.domain.merchant.dto.BusinessInfoResponse;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantRegisterRequest;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantRegisterResponse;
+import family.fisa.hangangpay.domain.merchant.dto.request.MerchantRegisterRequest;
+import family.fisa.hangangpay.domain.merchant.dto.response.BusinessInfoResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantRegisterResponse;
 import family.fisa.hangangpay.global.code.success.GeneralSuccessCode;
 import family.fisa.hangangpay.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;

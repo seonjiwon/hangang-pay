@@ -1,6 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.service.exchange;
 
-import family.fisa.hangangpay.domain.merchant.dto.MerchantSettlementHistoryItem;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantSettlementHistoryItem;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ExchangeHistoryItem;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ExchangeInitResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.UserExchangeHistoryDetail;

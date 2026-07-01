@@ -8,8 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankWalletResponse;
-import family.fisa.hangangpay.domain.wallet.dto.WalletBalanceResponse;
+import family.fisa.hangangpay.client.bank.dto.response.BankWalletResponse;
+import family.fisa.hangangpay.domain.wallet.dto.response.WalletBalanceResponse;
 import family.fisa.hangangpay.domain.wallet.entity.Wallet;
 import family.fisa.hangangpay.domain.wallet.repository.WalletRepository;
 import family.fisa.hangangpay.global.exception.BusinessException;

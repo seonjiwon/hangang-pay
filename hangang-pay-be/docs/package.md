@@ -53,6 +53,12 @@ service/
 
 Repository는 Port & Adapter 패턴을 따른다. 도메인별 포트 인터페이스는 `domain/{domain}/repository`에, Spring Data JPA 인터페이스는 필요 시 `domain/{domain}/repository/jpa`에 둔다.
 
+## DTO 패키지 규칙
+
+- 각 도메인·`auth`·`client/bank`의 DTO는 `dto/request/`(요청)와 `dto/response/`(응답: `Response`·`Item`·`Detail`)로 나눈다.
+- request도 response도 아닌 공용 타입(enum, 값 객체)은 `dto/` 루트에 둔다. 예: `UserHistoryType`, `MerchantQrPayload`, `client/bank/dto`의 `BankActResult`·`BankExchangeStatus`·`MerchantRedeemAccountInfo`.
+- `transaction`은 관객이 여럿(user·bank)이라 `dto/user/{request,response}`와 `dto/bank/`로 관객을 먼저 구분한다. 단일 관객 도메인은 `dto/{request,response}` flat 구조를 쓴다.
+
 ## Code 패키지 규칙
 
 - 도메인·`auth`·`client`의 응답 코드 enum은 `code/` 바로 아래에 둔다. 예: `domain/user/code/UserErrorCode`, `domain/user/code/UserSuccessCode`, `auth/code/AuthErrorCode`, `auth/code/AuthSuccessCode`.

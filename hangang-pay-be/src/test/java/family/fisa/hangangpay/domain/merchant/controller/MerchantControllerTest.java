@@ -6,7 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import family.fisa.hangangpay.domain.account.service.AccountCommandService;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantPaymentDetailResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantPaymentDetailResponse;
 import family.fisa.hangangpay.domain.merchant.service.MerchantQrService;
 import family.fisa.hangangpay.domain.merchant.service.MerchantQueryService;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.MerchantPaymentDetail;

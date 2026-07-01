@@ -1,6 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.service.payment;
 
-import family.fisa.hangangpay.client.bank.dto.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.internal.payment.PaymentExecutionPreparationResult;
 import java.time.LocalDateTime;

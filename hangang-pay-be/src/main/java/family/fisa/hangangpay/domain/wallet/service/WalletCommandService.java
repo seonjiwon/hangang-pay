@@ -1,8 +1,8 @@
 package family.fisa.hangangpay.domain.wallet.service;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankWalletCreateRequest;
-import family.fisa.hangangpay.client.bank.dto.BankWalletResponse;
+import family.fisa.hangangpay.client.bank.dto.request.BankWalletCreateRequest;
+import family.fisa.hangangpay.client.bank.dto.response.BankWalletResponse;
 import family.fisa.hangangpay.domain.institution.entity.Institution;
 import family.fisa.hangangpay.domain.party.entity.Party;
 import family.fisa.hangangpay.domain.party.entity.PartyType;

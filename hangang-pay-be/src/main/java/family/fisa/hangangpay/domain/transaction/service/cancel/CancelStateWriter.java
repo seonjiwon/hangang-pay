@@ -1,6 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.service.cancel;
 
-import family.fisa.hangangpay.client.bank.dto.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentCancelResponse;
 import family.fisa.hangangpay.domain.transaction.internal.cancel.CancelExecutionPrepared;
 import java.time.LocalDateTime;

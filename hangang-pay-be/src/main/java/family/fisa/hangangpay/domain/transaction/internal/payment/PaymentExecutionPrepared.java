@@ -1,6 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.internal.payment;
 
-import family.fisa.hangangpay.client.bank.dto.PaymentRequest;
+import family.fisa.hangangpay.client.bank.dto.request.PaymentRequest;
 import family.fisa.hangangpay.domain.transaction.entity.Transaction;
 import java.math.BigDecimal;
 

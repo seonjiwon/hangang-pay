@@ -1,6 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.internal.charge;
 
-import family.fisa.hangangpay.client.bank.dto.ChargeRequest;
+import family.fisa.hangangpay.client.bank.dto.request.ChargeRequest;
 import java.math.BigDecimal;
 
 /** 은행 충전 호출에 필요한 실행 준비 데이터 */

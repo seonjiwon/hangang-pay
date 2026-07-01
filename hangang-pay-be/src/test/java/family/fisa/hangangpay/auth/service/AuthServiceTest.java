@@ -9,9 +9,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import family.fisa.hangangpay.auth.code.AuthErrorCode;
-import family.fisa.hangangpay.auth.dto.LoginRequest;
-import family.fisa.hangangpay.auth.dto.LoginResponse;
-import family.fisa.hangangpay.auth.dto.MerchantLoginRequest;
+import family.fisa.hangangpay.auth.dto.request.LoginRequest;
+import family.fisa.hangangpay.auth.dto.request.MerchantLoginRequest;
+import family.fisa.hangangpay.auth.dto.response.LoginResponse;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.party.entity.Party;

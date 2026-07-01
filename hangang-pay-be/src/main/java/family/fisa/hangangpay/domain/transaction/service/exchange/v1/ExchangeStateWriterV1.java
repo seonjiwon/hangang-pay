@@ -1,6 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.service.exchange.v1;
 
-import family.fisa.hangangpay.client.bank.dto.ExchangeRequest;
+import family.fisa.hangangpay.client.bank.dto.request.ExchangeRequest;
 import family.fisa.hangangpay.domain.account.entity.Account;
 import family.fisa.hangangpay.domain.account.entity.AccountType;
 import family.fisa.hangangpay.domain.account.repository.AccountRepository;

@@ -12,8 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankTransactionStatusResponse;
-import family.fisa.hangangpay.client.bank.dto.PaymentResponse;
+import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.dto.response.PaymentResponse;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.party.entity.Party;

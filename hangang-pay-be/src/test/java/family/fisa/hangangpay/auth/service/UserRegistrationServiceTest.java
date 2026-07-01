@@ -13,8 +13,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 import family.fisa.hangangpay.auth.code.AuthErrorCode;
-import family.fisa.hangangpay.auth.dto.UserRegisterRequest;
-import family.fisa.hangangpay.auth.dto.UserRegisterResponse;
+import family.fisa.hangangpay.auth.dto.request.UserRegisterRequest;
+import family.fisa.hangangpay.auth.dto.response.UserRegisterResponse;
 import family.fisa.hangangpay.client.bank.BankClient;
 import family.fisa.hangangpay.domain.account.entity.Account;
 import family.fisa.hangangpay.domain.account.repository.AccountRepository;

@@ -1,7 +1,7 @@
 package family.fisa.hangangpay.auth.service;
 
 import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
-import family.fisa.hangangpay.domain.merchant.dto.BusinessInfoResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.BusinessInfoResponse;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import java.util.Map;
 import org.springframework.stereotype.Service;

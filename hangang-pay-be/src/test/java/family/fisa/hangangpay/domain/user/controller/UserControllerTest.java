@@ -10,7 +10,7 @@ import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeQueryS
 import family.fisa.hangangpay.domain.transaction.service.history.HistoryQueryService;
 import family.fisa.hangangpay.domain.transaction.service.payment.PaymentQueryService;
 import family.fisa.hangangpay.domain.user.code.UserErrorCode;
-import family.fisa.hangangpay.domain.user.dto.UserProfileResponse;
+import family.fisa.hangangpay.domain.user.dto.response.UserProfileResponse;
 import family.fisa.hangangpay.domain.user.service.UserQueryService;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import family.fisa.hangangpay.global.exception.handler.GlobalExceptionHandler;

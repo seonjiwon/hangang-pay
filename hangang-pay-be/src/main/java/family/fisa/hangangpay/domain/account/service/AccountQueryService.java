@@ -1,7 +1,7 @@
 package family.fisa.hangangpay.domain.account.service;
 
-import family.fisa.hangangpay.domain.account.dto.AccountListResponse;
-import family.fisa.hangangpay.domain.account.dto.AccountResponse;
+import family.fisa.hangangpay.domain.account.dto.response.AccountListResponse;
+import family.fisa.hangangpay.domain.account.dto.response.AccountResponse;
 import family.fisa.hangangpay.domain.account.entity.Account;
 import family.fisa.hangangpay.domain.account.repository.AccountRepository;
 import java.util.List;

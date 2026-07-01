@@ -1,7 +1,7 @@
 package family.fisa.hangangpay.domain.transaction.service.payment.v1;
 
 import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantPaymentDetailResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantPaymentDetailResponse;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;

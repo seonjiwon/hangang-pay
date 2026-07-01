@@ -1,9 +1,9 @@
 package family.fisa.hangangpay.domain.account.controller;
 
-import family.fisa.hangangpay.domain.account.dto.AccountCreateRequest;
-import family.fisa.hangangpay.domain.account.dto.AccountListResponse;
-import family.fisa.hangangpay.domain.account.dto.AccountResponse;
-import family.fisa.hangangpay.domain.account.dto.PrimaryAccountResponse;
+import family.fisa.hangangpay.domain.account.dto.request.AccountCreateRequest;
+import family.fisa.hangangpay.domain.account.dto.response.AccountListResponse;
+import family.fisa.hangangpay.domain.account.dto.response.AccountResponse;
+import family.fisa.hangangpay.domain.account.dto.response.PrimaryAccountResponse;
 import family.fisa.hangangpay.domain.account.service.AccountCommandService;
 import family.fisa.hangangpay.domain.account.service.AccountQueryService;
 import family.fisa.hangangpay.global.code.success.GeneralSuccessCode;

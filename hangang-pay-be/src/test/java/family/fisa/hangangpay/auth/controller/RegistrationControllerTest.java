@@ -7,13 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import family.fisa.hangangpay.auth.dto.UserRegisterResponse;
+import family.fisa.hangangpay.auth.dto.response.UserRegisterResponse;
 import family.fisa.hangangpay.auth.service.BusinessInfoQueryService;
 import family.fisa.hangangpay.auth.service.MerchantRegistrationService;
 import family.fisa.hangangpay.auth.service.UserRegistrationService;
 import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
-import family.fisa.hangangpay.domain.merchant.dto.BusinessInfoResponse;
-import family.fisa.hangangpay.domain.merchant.dto.MerchantRegisterResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.BusinessInfoResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.MerchantRegisterResponse;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import family.fisa.hangangpay.global.exception.handler.GlobalExceptionHandler;
 import jakarta.servlet.http.HttpSession;

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.ChargeResponse;
+import family.fisa.hangangpay.client.bank.dto.response.ChargeResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeIntentCreateRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ChargeExecuteResponse;

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import family.fisa.hangangpay.auth.service.BusinessInfoQueryService;
 import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
-import family.fisa.hangangpay.domain.merchant.dto.BusinessInfoResponse;
+import family.fisa.hangangpay.domain.merchant.dto.response.BusinessInfoResponse;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,13 +1,13 @@
 package family.fisa.hangangpay.domain.account.service;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankAccountCreateRequest;
-import family.fisa.hangangpay.client.bank.dto.BankAccountResponse;
-import family.fisa.hangangpay.domain.account.dto.AccountCreateRequest;
-import family.fisa.hangangpay.domain.account.dto.AccountResponse;
-import family.fisa.hangangpay.domain.account.dto.MerchantAccountUpdateRequest;
-import family.fisa.hangangpay.domain.account.dto.MerchantAccountUpdateResponse;
-import family.fisa.hangangpay.domain.account.dto.PrimaryAccountResponse;
+import family.fisa.hangangpay.client.bank.dto.request.BankAccountCreateRequest;
+import family.fisa.hangangpay.client.bank.dto.response.BankAccountResponse;
+import family.fisa.hangangpay.domain.account.dto.request.AccountCreateRequest;
+import family.fisa.hangangpay.domain.account.dto.request.MerchantAccountUpdateRequest;
+import family.fisa.hangangpay.domain.account.dto.response.AccountResponse;
+import family.fisa.hangangpay.domain.account.dto.response.MerchantAccountUpdateResponse;
+import family.fisa.hangangpay.domain.account.dto.response.PrimaryAccountResponse;
 import family.fisa.hangangpay.domain.account.entity.Account;
 import family.fisa.hangangpay.domain.account.entity.AccountType;
 import family.fisa.hangangpay.domain.account.repository.AccountRepository;
