@@ -15,31 +15,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 거래 통합 Entity.
- *
- * <p>거래 종류(transaction_type)별 유효 필드 매트릭스:
- *
- * <pre>
- *                         | CHARGE | EXCHANGE | PAYMENT | CANCEL
- * fromParty               |   ✓    |    ✓     |    ✓    |   ✓
- * toParty                 |   -    |    -     |    ✓    |   ✓
- * fromAccount             |   ✓    |    -     |    -    |   -
- * toAccount               |   -    |    ✓     |    -    |   -
- * fromWallet              |   -    |    ✓     |    ✓    |   ✓
- * toWallet                |   ✓    |    -     |    ✓    |   ✓
- * amount                  |   ✓    |    ✓     |    ✓    |   ✓
- * discountAmount          |   ✓    |    ✓     |    -    |   -
- * discountRate            |   ✓    |    ✓     |    -    |   -
- * approvalNumber          |   -    |    ✓     |    ✓    |   ✓
- * itemName                |   -    |    -     |    ✓    |   -
- * txHash                  |   ✓    |    ✓     |    ✓    |   ✓ (BankClient 응답에서 채움)
- * bankTransactionId       |   ✓    |    ✓     |    ✓    |   ✓
- * originalTransactionUuid |   -    |    -     |    -    |   ✓
- * </pre>
- *
- * <p>유효성은 정적 팩토리 메서드(forCharge/forExchange/forPayment/forCancel)에서 강제.
- */
+/** 거래 통합 Entity. */
 @Entity
 @Table(name = "transaction")
 @Getter
@@ -220,6 +196,11 @@ public class Transaction extends BaseEntity {
                 .build();
     }
 
+    /** 트랜잭션 상태 전이 메서드 */
+    public void markProcessing() {
+        this.status = TransactionStatus.PROCESSING;
+    }
+
     /** BankClient 응답을 반영해 성공 상태로 마무리 (JPA 변경감지) */
     public void markSuccess(String txHash, String bankTransactionId) {
         this.txHash = txHash;
@@ -232,44 +213,14 @@ public class Transaction extends BaseEntity {
         this.status = TransactionStatus.FAILED;
     }
 
-    /** 트랜잭션 상태 전이 메서드 */
-    public void markProcessing() {
-        this.status = TransactionStatus.PROCESSING;
-    }
-
-    /** intent가 TTL 내 실행되지 않아 만료됨 */
-    public void markExpired() {
-        this.status = TransactionStatus.EXPIRED;
-    }
-
-    /** 결제 요청자가 거래 소유자인지 검증 */
-    public void validateOwner(Long partyId) {
-        if (!this.fromParty.getId().equals(partyId)) {
-            throw new BusinessException(UserErrorCode.NOT_OWNER);
-        }
-    }
-
-    /** 결제 실행 가능한 상태인지 검증 */
-    public void validateExecutableStatus() {
-        if (this.status == TransactionStatus.EXPIRED) {
-            throw new BusinessException(TransactionErrorCode.PAYMENT_INTENT_EXPIRED);
-        }
-        if (this.status != TransactionStatus.PENDING) {
-            throw new BusinessException(TransactionErrorCode.INVALID_PAYMENT_STATUS);
-        }
-    }
-
     /** 네트워크 오류로 인한 확인 불가 상태 */
     public void markUnknown() {
         this.status = TransactionStatus.UNKNOWN;
     }
 
-    /** UNKNOWN/PROCESSING 결제만 Bank 상태 조회로 복구할 수 있다. */
-    public void validateRecoverableStatus() {
-        if (this.status != TransactionStatus.UNKNOWN
-                && this.status != TransactionStatus.PROCESSING) {
-            throw new BusinessException(TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);
-        }
+    /** intent가 TTL 내 실행되지 않아 만료됨 */
+    public void markExpired() {
+        this.status = TransactionStatus.EXPIRED;
     }
 
     /** Bank 조회 결과가 SUCCESS면 로컬 거래도 성공으로 확정한다. */
@@ -289,6 +240,36 @@ public class Transaction extends BaseEntity {
         this.reconcileAttemptCount = this.reconcileAttemptCount + 1;
     }
 
+    /** id 확보 후, 승인번호 세팅 - forCancel 팩토리에서는 id가 없으므로 별도 메서드 사용 */
+    public void assignApprovalNumber(String approvalNumber) {
+        this.approvalNumber = approvalNumber;
+    }
+
+    /** 결제 요청자가 거래 소유자인지 검증 */
+    public void validateOwner(Long partyId) {
+        if (!this.fromParty.getId().equals(partyId)) {
+            throw new BusinessException(UserErrorCode.NOT_OWNER);
+        }
+    }
+
+    /** 결제 실행 가능한 상태인지 검증 */
+    public void validateExecutableStatus() {
+        if (this.status == TransactionStatus.EXPIRED) {
+            throw new BusinessException(TransactionErrorCode.PAYMENT_INTENT_EXPIRED);
+        }
+        if (this.status != TransactionStatus.PENDING) {
+            throw new BusinessException(TransactionErrorCode.INVALID_PAYMENT_STATUS);
+        }
+    }
+
+    /** UNKNOWN/PROCESSING 결제만 Bank 상태 조회로 복구할 수 있다. */
+    public void validateRecoverableStatus() {
+        if (this.status != TransactionStatus.UNKNOWN
+                && this.status != TransactionStatus.PROCESSING) {
+            throw new BusinessException(TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);
+        }
+    }
+
     /** 취소 요청자가 원본 결제의 수신 가맹점인지 검증 */
     public void validateMerchantIsReceiver(Long merchantPartyId) {
         if (!this.toParty.getId().equals(merchantPartyId)) {
@@ -302,10 +283,5 @@ public class Transaction extends BaseEntity {
                 || this.status != TransactionStatus.SUCCESS) {
             throw new BusinessException(TransactionErrorCode.PAYMENT_NOT_CANCELLABLE);
         }
-    }
-
-    /** id 확보 후, 승인번호 세팅 - forCancel 팩토리에서는 id가 없으므로 별도 메서드 사용 */
-    public void assignApprovalNumber(String approvalNumber) {
-        this.approvalNumber = approvalNumber;
     }
 }
