@@ -20,6 +20,4 @@ public interface MerchantJpaRepository extends JpaRepository<Merchant, Long> {
             @Param("businessNumber") String businessNumber);
 
     boolean existsByBusinessNumber(String businessNumber);
-
-    boolean existsByUsername(String username);
 }

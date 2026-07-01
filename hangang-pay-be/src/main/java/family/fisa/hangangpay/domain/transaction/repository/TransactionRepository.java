@@ -73,9 +73,6 @@ public interface TransactionRepository {
     /** 원거래 UUID를 참조하는 SUCCESS CANCEL 거래 존재 여부 */
     boolean existsSuccessCancelByOriginalTransactionUuid(String originalTransactionUuid);
 
-    /** 특정 거래 유형의 SUCCESS 누적 금액 (전체 기간) */
-    BigDecimal sumAllSuccessByType(Long partyId, TransactionType type);
-
     /** 원본 PAYMENT의 SUCCESS + CANCEL 존재 여부 확인 - 재취소 방지용 */
     boolean existsSuccessCancelFor(String originalTransactionUuid);
 

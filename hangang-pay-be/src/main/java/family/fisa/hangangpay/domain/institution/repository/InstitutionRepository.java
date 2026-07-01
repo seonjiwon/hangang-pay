@@ -10,7 +10,5 @@ public interface InstitutionRepository {
 
     Optional<Institution> findByInstitutionCode(String institutionCode);
 
-    boolean existsById(Long id);
-
     List<Institution> findAllByOrderByIdAsc();
 }

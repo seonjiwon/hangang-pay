@@ -47,9 +47,4 @@ public class MerchantRepositoryImpl implements MerchantRepository {
     public boolean existsByBusinessNumber(String businessNumber) {
         return merchantJpaRepository.existsByBusinessNumber(businessNumber);
     }
-
-    @Override
-    public boolean existsByUsername(String username) {
-        return merchantJpaRepository.existsByUsername(username);
-    }
 }

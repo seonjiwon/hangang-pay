@@ -12,7 +12,4 @@ public interface WalletRepository {
     Optional<Wallet> findById(Long id);
 
     Wallet save(Wallet wallet);
-
-    /** 비관적 쓰기 락 조회 - 동일 partyId 거래 동시성 제어용 */
-    Optional<Wallet> findByParty_IdForUpdate(Long partyId);
 }

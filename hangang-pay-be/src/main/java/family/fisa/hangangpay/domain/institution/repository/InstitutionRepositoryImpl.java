@@ -24,11 +24,6 @@ public class InstitutionRepositoryImpl implements InstitutionRepository {
     }
 
     @Override
-    public boolean existsById(Long id) {
-        return jpaRepository.existsById(id);
-    }
-
-    @Override
     public List<Institution> findAllByOrderByIdAsc() {
         return jpaRepository.findAllByOrderByIdAsc();
     }

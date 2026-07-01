@@ -149,16 +149,6 @@ public interface TransactionJpaRepository extends JpaRepository<Transaction, Lon
             TransactionType transactionType,
             TransactionStatus status);
 
-    /** 거래 유형 SUCCESS 전체 기간 누적 금액 */
-    @Query(
-            "SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
-                    + "WHERE t.fromParty.id = :partyId "
-                    + "AND t.transactionType = :type "
-                    + "AND t.status = "
-                    + "  family.fisa.hangangpay.domain.transaction.entity.TransactionStatus.SUCCESS")
-    BigDecimal sumAllSuccessByType(
-            @Param("partyId") Long partyId, @Param("type") TransactionType type);
-
     /** 복구 가능한 CANCEL 조회 - IN (UNKNOWN, PROCESSING) */
     @EntityGraph(attributePaths = {"fromParty"})
     Optional<Transaction> findByOriginalTransactionUuidAndTransactionTypeAndStatusIn(

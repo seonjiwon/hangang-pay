@@ -158,12 +158,6 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 originalTransactionUuid, TransactionType.CANCEL, TransactionStatus.SUCCESS);
     }
 
-    /** 전체 기간 거래 유형별 SUCCESS 누적 금액 조회 */
-    @Override
-    public BigDecimal sumAllSuccessByType(Long partyId, TransactionType type) {
-        return jpaRepository.sumAllSuccessByType(partyId, type);
-    }
-
     @Override
     public boolean existsSuccessCancelFor(String originalTransactionUuid) {
         return jpaRepository.existsByOriginalTransactionUuidAndTransactionTypeAndStatus(

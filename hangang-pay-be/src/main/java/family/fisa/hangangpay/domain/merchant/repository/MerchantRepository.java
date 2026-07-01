@@ -18,6 +18,4 @@ public interface MerchantRepository {
     Merchant save(Merchant merchant);
 
     boolean existsByBusinessNumber(String businessNumber);
-
-    boolean existsByUsername(String username);
 }

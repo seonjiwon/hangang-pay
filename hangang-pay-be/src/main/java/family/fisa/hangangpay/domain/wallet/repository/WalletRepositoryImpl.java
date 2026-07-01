@@ -30,9 +30,4 @@ public class WalletRepositoryImpl implements WalletRepository {
     public Wallet save(Wallet wallet) {
         return walletJpaRepository.save(wallet);
     }
-
-    @Override
-    public Optional<Wallet> findByParty_IdForUpdate(Long partyId) {
-        return walletJpaRepository.findByParty_IdForUpdate(partyId);
-    }
 }

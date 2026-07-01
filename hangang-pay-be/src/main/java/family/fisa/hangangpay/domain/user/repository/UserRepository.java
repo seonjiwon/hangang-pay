@@ -6,8 +6,6 @@ import java.util.Optional;
 
 public interface UserRepository {
 
-    Optional<Long> findPartyIdByUserId(Long userId);
-
     Optional<User> findByIdWithParty(Long userId);
 
     Optional<User> findByPhoneNumberWithParty(String phoneNumber);
