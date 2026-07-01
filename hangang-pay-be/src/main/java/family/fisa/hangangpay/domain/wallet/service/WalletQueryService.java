@@ -45,11 +45,7 @@ public class WalletQueryService {
                 wallet.getAddress(),
                 bankWallet.balance());
 
-        return WalletBalanceResponse.builder()
-                .walletAddress(wallet.getAddress())
-                .balance(bankWallet.balance())
-                .unit(UNIT)
-                .updatedAt(wallet.getUpdatedAt())
-                .build();
+        return new WalletBalanceResponse(
+                wallet.getAddress(), bankWallet.balance(), UNIT, wallet.getUpdatedAt());
     }
 }

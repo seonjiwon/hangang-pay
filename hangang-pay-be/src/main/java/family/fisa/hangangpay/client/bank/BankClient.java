@@ -5,12 +5,12 @@ import family.fisa.hangangpay.client.bank.dto.*;
 public interface BankClient {
 
     // bank_account 관련
-    BankAccountResponse createBankAccount(CreateBankAccountRequest request);
+    BankAccountResponse createBankAccount(BankAccountCreateRequest request);
 
     BankAccountResponse getBankAccount(Long institutionId, String accountNumber);
 
     // bank_wallet 관련 (Custodial)
-    BankWalletResponse createBankWallet(CreateBankWalletRequest request);
+    BankWalletResponse createBankWallet(BankWalletCreateRequest request);
 
     BankWalletResponse getBankWalletByAddress(String address);
 
@@ -29,9 +29,6 @@ public interface BankClient {
     PaymentResponse payment(PaymentRequest request);
 
     CancelResponse cancel(CancelRequest request);
-
-    // blockchain
-    BlockchainLedgerResponse getBlockchainLedgerByTxHash(String txHash);
 
     // 로컬 seed 데이터 온체인 동기화
     void localMint(Long institutionId, String walletAddress, java.math.BigDecimal amount);

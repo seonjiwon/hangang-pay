@@ -23,9 +23,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(
             HttpSecurity http,
             CorsConfigurationSource corsConfigurationSource,
-            SessionAuthenticationFilter sessionAuthenticationFilter
-            //            @Value("${management.prometheus.allowed-cidr}") String prometheusCidr
-            ) throws Exception {
+            SessionAuthenticationFilter sessionAuthenticationFilter)
+            throws Exception {
         http.cors(c -> c.configurationSource(corsConfigurationSource));
 
         // CSRF 예외 경로, 새 도메인 POST 개발 시 경로 추가 필요

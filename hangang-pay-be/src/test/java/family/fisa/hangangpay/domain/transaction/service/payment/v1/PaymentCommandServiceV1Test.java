@@ -22,7 +22,7 @@ import family.fisa.hangangpay.domain.party.repository.PartyRepository;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentIntentCreateRequest;
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentIntentResponse;
 import family.fisa.hangangpay.domain.transaction.entity.Transaction;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
@@ -288,8 +288,8 @@ class PaymentCommandServiceV1Test {
         PaymentResponse bankResponse = successBankPaymentResponse();
 
         // SUCCESS 저장 후 command service가 최종 반환할 응답
-        PaymentExecutionResponse expected =
-                new PaymentExecutionResponse(
+        PaymentExecuteResponse expected =
+                new PaymentExecuteResponse(
                         TRANSACTION_UUID,
                         TransactionStatus.SUCCESS,
                         "APV-2026-00000123",
@@ -318,7 +318,7 @@ class PaymentCommandServiceV1Test {
                         });
 
         // when
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.executePayment(
                         USER_ID,
                         USER_PARTY_ID,
@@ -352,8 +352,8 @@ class PaymentCommandServiceV1Test {
                         "0x-merchant",
                         new BigDecimal("10000"));
 
-        PaymentExecutionResponse unknownResponse =
-                new PaymentExecutionResponse(
+        PaymentExecuteResponse unknownResponse =
+                new PaymentExecuteResponse(
                         TRANSACTION_UUID,
                         TransactionStatus.UNKNOWN,
                         "APV-2026-00000123",
@@ -380,7 +380,7 @@ class PaymentCommandServiceV1Test {
                         });
 
         // when
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.executePayment(
                         USER_ID,
                         USER_PARTY_ID,
@@ -448,8 +448,8 @@ class PaymentCommandServiceV1Test {
                         "0x-merchant",
                         new BigDecimal("10000"));
         PaymentResponse bankResponse = successBankPaymentResponse();
-        PaymentExecutionResponse expected =
-                new PaymentExecutionResponse(
+        PaymentExecuteResponse expected =
+                new PaymentExecuteResponse(
                         TRANSACTION_UUID,
                         TransactionStatus.SUCCESS,
                         "APV-2026-00000123",
@@ -472,7 +472,7 @@ class PaymentCommandServiceV1Test {
         given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
                 .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.executePayment(
                         USER_ID,
                         USER_PARTY_ID,
@@ -496,8 +496,8 @@ class PaymentCommandServiceV1Test {
                         "0x-user",
                         "0x-merchant",
                         new BigDecimal("10000"));
-        PaymentExecutionResponse unknownResponse =
-                new PaymentExecutionResponse(
+        PaymentExecuteResponse unknownResponse =
+                new PaymentExecuteResponse(
                         TRANSACTION_UUID,
                         TransactionStatus.UNKNOWN,
                         null,
@@ -515,7 +515,7 @@ class PaymentCommandServiceV1Test {
         given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
                 .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.executePayment(
                         USER_ID,
                         USER_PARTY_ID,
@@ -533,11 +533,11 @@ class PaymentCommandServiceV1Test {
     @DisplayName("UNKNOWN 복구 시 Bank SUCCESS 결과로 상태를 SUCCESS로 갱신한다")
     void recoverPayment_updatesStatusFromBankSuccess() {
         BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.SUCCESS);
-        PaymentExecutionResponse expected = paymentRecoveryResponse(TransactionStatus.SUCCESS);
+        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.SUCCESS);
 
         givenPaymentRecoveryBase(bankStatus, expected);
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
 
         assertThat(response).isSameAs(expected);
@@ -552,11 +552,11 @@ class PaymentCommandServiceV1Test {
     @DisplayName("UNKNOWN 복구 시 Bank FAILED 결과로 상태를 FAILED로 갱신한다")
     void recoverPayment_updatesStatusFromBankFailed() {
         BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.FAILED);
-        PaymentExecutionResponse expected = paymentRecoveryResponse(TransactionStatus.FAILED);
+        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.FAILED);
 
         givenPaymentRecoveryBase(bankStatus, expected);
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
 
         assertThat(response).isSameAs(expected);
@@ -567,11 +567,11 @@ class PaymentCommandServiceV1Test {
     @DisplayName("Bank가 아직 PROCESSING이면 복구 가능한 상태로 남긴다")
     void recoverPayment_keepsRecoverableWhenBankStillProcessing() {
         BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.PROCESSING);
-        PaymentExecutionResponse expected = paymentRecoveryResponse(TransactionStatus.UNKNOWN);
+        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.UNKNOWN);
 
         givenPaymentRecoveryBase(bankStatus, expected);
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
 
         assertThat(response).isSameAs(expected);
@@ -648,7 +648,7 @@ class PaymentCommandServiceV1Test {
     @DisplayName("복구도 transactionUuid Redis lock 안에서 실행한다")
     void recoverPayment_usesTransactionLock() {
         BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.SUCCESS);
-        PaymentExecutionResponse expected = paymentRecoveryResponse(TransactionStatus.SUCCESS);
+        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.SUCCESS);
         givenPaymentRecoveryBase(bankStatus, expected);
 
         paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
@@ -660,7 +660,7 @@ class PaymentCommandServiceV1Test {
     @DisplayName("복구해도 은행이 아직 PROCESSING이면 시도 횟수만 올린다(cap 진행)")
     void recoverPayment_stillProcessing_incrementsAttempt() {
         BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.PROCESSING);
-        PaymentExecutionResponse stillProcessing =
+        PaymentExecuteResponse stillProcessing =
                 paymentRecoveryResponse(TransactionStatus.PROCESSING);
         givenPaymentRecoveryBase(bankStatus, stillProcessing);
 
@@ -683,8 +683,8 @@ class PaymentCommandServiceV1Test {
                         "0x-merchant",
                         new BigDecimal("10000"));
 
-        PaymentExecutionResponse unknownResponse =
-                new PaymentExecutionResponse(
+        PaymentExecuteResponse unknownResponse =
+                new PaymentExecuteResponse(
                         TRANSACTION_UUID,
                         TransactionStatus.UNKNOWN,
                         null,
@@ -705,7 +705,7 @@ class PaymentCommandServiceV1Test {
         given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
                 .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.executePayment(
                         USER_ID,
                         USER_PARTY_ID,
@@ -723,7 +723,7 @@ class PaymentCommandServiceV1Test {
     }
 
     private void givenPaymentRecoveryBase(
-            BankTransactionStatusResponse bankStatus, PaymentExecutionResponse response) {
+            BankTransactionStatusResponse bankStatus, PaymentExecuteResponse response) {
         given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
                 .willAnswer(
                         invocation -> {
@@ -764,8 +764,8 @@ class PaymentCommandServiceV1Test {
                 LocalDateTime.of(2026, 5, 25, 10, 5));
     }
 
-    private PaymentExecutionResponse paymentRecoveryResponse(TransactionStatus status) {
-        return new PaymentExecutionResponse(
+    private PaymentExecuteResponse paymentRecoveryResponse(TransactionStatus status) {
+        return new PaymentExecuteResponse(
                 TRANSACTION_UUID,
                 status,
                 "APV-2026-00000123",

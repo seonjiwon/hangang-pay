@@ -91,8 +91,7 @@ class ExchangeQueryServiceV1Test {
 
     private void stubWalletBalance(String balance) {
         when(walletQueryService.getBalance(PARTY_ID))
-                .thenReturn(
-                        WalletBalanceResponse.builder().balance(new BigDecimal(balance)).build());
+                .thenReturn(new WalletBalanceResponse(null, new BigDecimal(balance), null, null));
     }
 
     private void stubEligibilityCalculation(

@@ -242,12 +242,6 @@ public class Transaction extends BaseEntity {
         this.status = TransactionStatus.EXPIRED;
     }
 
-    /** 결제 가능한 상태인지 검증 */
-    public void validateExecutableBy(Long partyId) {
-        validateOwner(partyId);
-        validateExecutableStatus();
-    }
-
     /** 결제 요청자가 거래 소유자인지 검증 */
     public void validateOwner(Long partyId) {
         if (!this.fromParty.getId().equals(partyId)) {

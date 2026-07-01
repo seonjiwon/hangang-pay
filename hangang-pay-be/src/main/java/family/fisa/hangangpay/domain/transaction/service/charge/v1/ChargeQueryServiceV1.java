@@ -49,7 +49,7 @@ public class ChargeQueryServiceV1 implements ChargeQueryService {
         List<Account> accounts = accountRepository.findAllByParty_Id(partyId);
 
         // 잔액 - 현재 지갑 잔액을 기준으로 해야함
-        BigDecimal walletBalance = walletQueryService.getBalance(partyId).getBalance();
+        BigDecimal walletBalance = walletQueryService.getBalance(partyId).balance();
 
         // 충전 가능 금액 계산
         LocalDateTime startOfMonth = YearMonth.now().atDay(1).atStartOfDay();

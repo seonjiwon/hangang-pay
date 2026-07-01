@@ -82,11 +82,6 @@ public interface TransactionJpaRepository extends JpaRepository<Transaction, Lon
     Optional<Transaction> findByIdAndTransactionTypeIn(
             @Param("id") Long id, @Param("types") List<TransactionType> types);
 
-    /** PAYMENT 상세 - fromParty fetch join */
-    @Query("SELECT t FROM Transaction t WHERE t.id = :id")
-    @EntityGraph(attributePaths = {"fromParty"})
-    Optional<Transaction> findByIdWithFromParty(@Param("id") Long id);
-
     /** 스케줄러용 - UNKNOWN 상태 PAYMENT 목록 조회 (fromParty fetch join) */
     @EntityGraph(attributePaths = {"fromParty"})
     List<Transaction> findByStatusAndTransactionType(
@@ -147,19 +142,6 @@ public interface TransactionJpaRepository extends JpaRepository<Transaction, Lon
             @Param("partyId") Long partyId,
             @Param("type") TransactionType type,
             @Param("since") LocalDateTime since);
-
-    /** 배치 reconcile 대상 id 조회 */
-    @Query(
-            "SELECT t.id FROM Transaction t "
-                    + "WHERE t.status = :status "
-                    + "AND t.transactionType = :type "
-                    + "AND t.createdAt < :threshold "
-                    + "AND t.reconcileAttemptCount < :maxAttempts")
-    List<Long> findIdsForReconcile(
-            @Param("status") TransactionStatus status,
-            @Param("type") TransactionType type,
-            @Param("threshold") LocalDateTime threshold,
-            @Param("maxAttempts") int maxAttempts);
 
     /** 원거래 UUID를 참조하는 특정 상태/타입 거래 존재 여부 */
     boolean existsByOriginalTransactionUuidAndTransactionTypeAndStatus(

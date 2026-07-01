@@ -3,7 +3,7 @@ package family.fisa.hangangpay.domain.transaction.controller;
 import family.fisa.hangangpay.domain.transaction.code.TransactionSuccessCode;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentIntentCreateRequest;
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentIntentResponse;
 import family.fisa.hangangpay.domain.transaction.service.payment.PaymentCommandService;
 import family.fisa.hangangpay.global.response.ApiResponse;
@@ -41,12 +41,12 @@ public class PaymentController {
     }
 
     @PostMapping("/{transactionUuid}/execute")
-    public ResponseEntity<ApiResponse<PaymentExecutionResponse>> executePayment(
+    public ResponseEntity<ApiResponse<PaymentExecuteResponse>> executePayment(
             @SessionAttribute(SessionAttributeNames.USER_ID) Long userId,
             @SessionAttribute(SessionAttributeNames.PARTY_ID) Long partyId,
             @PathVariable String transactionUuid,
             @Valid @RequestBody PaymentExecuteRequest request) {
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.executePayment(userId, partyId, transactionUuid, request);
 
         return ResponseEntity.ok(
@@ -55,10 +55,10 @@ public class PaymentController {
 
     /** UNKNOWN 상태 결제를 복구하기 위한 재조회/재동기화 API */
     @PostMapping("/{transactionUuid}/recover")
-    public ResponseEntity<ApiResponse<PaymentExecutionResponse>> recoverPayment(
+    public ResponseEntity<ApiResponse<PaymentExecuteResponse>> recoverPayment(
             @SessionAttribute(SessionAttributeNames.PARTY_ID) Long partyId,
             @PathVariable String transactionUuid) {
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentCommandService.recoverPayment(partyId, transactionUuid);
 
         return ResponseEntity.ok(

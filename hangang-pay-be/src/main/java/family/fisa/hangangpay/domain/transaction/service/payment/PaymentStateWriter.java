@@ -1,7 +1,7 @@
 package family.fisa.hangangpay.domain.transaction.service.payment;
 
 import family.fisa.hangangpay.client.bank.dto.BankTransactionStatusResponse;
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.internal.payment.PaymentExecutionPreparationResult;
 import java.time.LocalDateTime;
 
@@ -11,9 +11,9 @@ public interface PaymentStateWriter {
     PaymentExecutionPreparationResult prepareExecution(
             Long userId, Long partyId, String transactionUuid, String paymentPin);
 
-    PaymentExecutionResponse markUnknown(String transactionUuid);
+    PaymentExecuteResponse markUnknown(String transactionUuid);
 
-    PaymentExecutionResponse completeSuccess(
+    PaymentExecuteResponse completeSuccess(
             String transactionUuid,
             String txHash,
             String bankTransactionId,
@@ -30,6 +30,6 @@ public interface PaymentStateWriter {
 
     String prepareRecovery(Long partyId, String transactionUuid);
 
-    PaymentExecutionResponse applyRecoveryResult(
+    PaymentExecuteResponse applyRecoveryResult(
             String transactionUuid, BankTransactionStatusResponse bankStatus);
 }

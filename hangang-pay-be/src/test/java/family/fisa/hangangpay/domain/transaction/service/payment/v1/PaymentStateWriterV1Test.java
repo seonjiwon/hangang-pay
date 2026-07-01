@@ -13,7 +13,7 @@ import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.party.entity.Party;
 import family.fisa.hangangpay.domain.party.entity.PartyType;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.entity.Transaction;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionType;
@@ -77,8 +77,8 @@ class PaymentStateWriterV1Test {
     @DisplayName("동일 요청 재시도 시 기존 snapshot을 반환한다")
     void prepareExecution_sameRequestReturnsSnapshot() {
         Transaction transaction = paymentTransaction(TransactionStatus.SUCCESS);
-        PaymentExecutionResponse snapshot =
-                new PaymentExecutionResponse(
+        PaymentExecuteResponse snapshot =
+                new PaymentExecuteResponse(
                         TRANSACTION_UUID,
                         TransactionStatus.SUCCESS,
                         "APV-2026-00000123",
@@ -194,7 +194,7 @@ class PaymentStateWriterV1Test {
 
         givenRecoveryApplyBase(transaction);
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.SUCCESS);
@@ -212,7 +212,7 @@ class PaymentStateWriterV1Test {
 
         givenRecoveryApplyBase(transaction);
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.FAILED);
@@ -229,7 +229,7 @@ class PaymentStateWriterV1Test {
 
         givenRecoveryApplyBase(transaction);
 
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.UNKNOWN);

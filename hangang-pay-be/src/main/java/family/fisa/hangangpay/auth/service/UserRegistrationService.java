@@ -4,7 +4,7 @@ import family.fisa.hangangpay.auth.code.AuthErrorCode;
 import family.fisa.hangangpay.auth.dto.UserRegisterRequest;
 import family.fisa.hangangpay.auth.dto.UserRegisterResponse;
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.CreateBankAccountRequest;
+import family.fisa.hangangpay.client.bank.dto.BankAccountCreateRequest;
 import family.fisa.hangangpay.domain.account.entity.Account;
 import family.fisa.hangangpay.domain.account.entity.AccountType;
 import family.fisa.hangangpay.domain.account.repository.AccountRepository;
@@ -79,7 +79,7 @@ public class UserRegistrationService {
                         .accountNumber(request.accountNumber())
                         .build());
         bankClient.createBankAccount(
-                new CreateBankAccountRequest(
+                new BankAccountCreateRequest(
                         institution.getId(),
                         request.accountNumber(),
                         request.name(),

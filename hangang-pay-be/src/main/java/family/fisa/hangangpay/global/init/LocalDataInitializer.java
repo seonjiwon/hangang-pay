@@ -155,9 +155,6 @@ public class LocalDataInitializer implements ApplicationRunner {
 
         seedHistoryTransactions(
                 userParty, userAccount, userWallet, merchantParty, merchantAccount, merchantWallet);
-        // seedEligibleUserTransactions(user2Party, user2Account, user2Wallet,
-        // merchantParty,
-        // merchantWallet);
 
         syncOnChainBalance(userWallet.getAddress(), new BigDecimal("57500"));
         syncOnChainBalance(merchantWallet.getAddress(), new BigDecimal("14500"));
@@ -418,56 +415,6 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 BigDecimal.ZERO));
         uExchange.completeSuccessWithResponse("0xEXCTX0005", "BANK-TX-EXC-005");
         backdate(uExchange.getId(), 4, 17);
-    }
-
-    // user2: 충전 1건 후 결제 65,000원 → eligible=true, walletBalance=35,000
-    private void seedEligibleUserTransactions(
-            Party userParty,
-            Account userAccount,
-            Wallet userWallet,
-            Party merchantParty,
-            Wallet merchantWallet) {
-
-        Transaction charge =
-                transactionRepository.saveAndFlush(
-                        Transaction.forCharge(
-                                UUID.randomUUID().toString(),
-                                userParty,
-                                userAccount,
-                                userWallet,
-                                new BigDecimal("100000"),
-                                new BigDecimal("10000"),
-                                new BigDecimal("10.00")));
-        charge.completeSuccessWithResponse("0xCHARGETX0100", "BANK-TX-100");
-        backdate(charge.getId(), 5, 10);
-
-        Transaction payment1 =
-                transactionRepository.saveAndFlush(
-                        Transaction.forPayment(
-                                UUID.randomUUID().toString(),
-                                userParty,
-                                merchantParty,
-                                userWallet,
-                                merchantWallet,
-                                new BigDecimal("30000"),
-                                "APV-2026-00000009",
-                                "한강치킨"));
-        payment1.completeSuccessWithResponse("0xPAYTX0101", null);
-        backdate(payment1.getId(), 4, 10);
-
-        Transaction payment2 =
-                transactionRepository.saveAndFlush(
-                        Transaction.forPayment(
-                                UUID.randomUUID().toString(),
-                                userParty,
-                                merchantParty,
-                                userWallet,
-                                merchantWallet,
-                                new BigDecimal("35000"),
-                                "APV-2026-00000010",
-                                "한강삼겹살"));
-        payment2.completeSuccessWithResponse("0xPAYTX0102", null);
-        backdate(payment2.getId(), 3, 14);
     }
 
     // seed DB 거래내역에 맞춰 온체인 잔액 동기화 (로컬 전용)

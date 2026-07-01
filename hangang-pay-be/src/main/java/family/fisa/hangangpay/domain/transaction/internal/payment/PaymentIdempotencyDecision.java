@@ -1,16 +1,16 @@
 package family.fisa.hangangpay.domain.transaction.internal.payment;
 
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 
 public record PaymentIdempotencyDecision(
-        PaymentIdempotencyDecisionType type, PaymentExecutionResponse responseSnapshot) {
+        PaymentIdempotencyDecisionType type, PaymentExecuteResponse responseSnapshot) {
 
     public static PaymentIdempotencyDecision newRequest() {
         return new PaymentIdempotencyDecision(PaymentIdempotencyDecisionType.NEW_REQUEST, null);
     }
 
     public static PaymentIdempotencyDecision returnSnapshot(
-            PaymentExecutionResponse responseSnapshot) {
+            PaymentExecuteResponse responseSnapshot) {
         return new PaymentIdempotencyDecision(
                 PaymentIdempotencyDecisionType.RETURN_SNAPSHOT, responseSnapshot);
     }

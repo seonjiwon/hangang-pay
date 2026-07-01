@@ -43,7 +43,7 @@ public class ExchangeQueryServiceV1 implements ExchangeQueryService {
     @Override
     public ExchangeInitResponse getExchangeInit(Long partyId) {
         // 잔액은 현재 지갑 잔액으로부터 가져옴
-        BigDecimal walletBalance = walletQueryService.getBalance(partyId).getBalance();
+        BigDecimal walletBalance = walletQueryService.getBalance(partyId).balance();
         boolean eligible = checkEligibility(partyId);
 
         log.info(

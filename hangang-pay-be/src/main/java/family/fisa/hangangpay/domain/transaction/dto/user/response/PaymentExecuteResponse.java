@@ -5,7 +5,7 @@ import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public record PaymentExecutionResponse(
+public record PaymentExecuteResponse(
         String transactionUuid,
         TransactionStatus status,
         String approvalNumber,
@@ -13,9 +13,9 @@ public record PaymentExecutionResponse(
         String merchantName,
         LocalDateTime confirmedAt) {
 
-    public static PaymentExecutionResponse from(
+    public static PaymentExecuteResponse from(
             Transaction t, String merchantName, LocalDateTime confirmedAt) {
-        return new PaymentExecutionResponse(
+        return new PaymentExecuteResponse(
                 t.getTransactionUuid(),
                 t.getStatus(),
                 t.getApprovalNumber(),

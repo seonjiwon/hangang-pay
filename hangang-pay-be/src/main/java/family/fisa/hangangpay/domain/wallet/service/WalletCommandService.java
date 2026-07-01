@@ -1,8 +1,8 @@
 package family.fisa.hangangpay.domain.wallet.service;
 
 import family.fisa.hangangpay.client.bank.BankClient;
+import family.fisa.hangangpay.client.bank.dto.BankWalletCreateRequest;
 import family.fisa.hangangpay.client.bank.dto.BankWalletResponse;
-import family.fisa.hangangpay.client.bank.dto.CreateBankWalletRequest;
 import family.fisa.hangangpay.domain.institution.entity.Institution;
 import family.fisa.hangangpay.domain.party.entity.Party;
 import family.fisa.hangangpay.domain.party.entity.PartyType;
@@ -32,7 +32,7 @@ public class WalletCommandService {
         // 1. bank에 지갑 발급 요청 (Custodial - bank가 keypair 생성)
         BankWalletResponse bankWallet =
                 bankClient.createBankWallet(
-                        new CreateBankWalletRequest(institution.getId(), merchant));
+                        new BankWalletCreateRequest(institution.getId(), merchant));
 
         // 2. wallet_address 정규화
         String walletAddress = normalizeAddress(bankWallet.walletAddress());

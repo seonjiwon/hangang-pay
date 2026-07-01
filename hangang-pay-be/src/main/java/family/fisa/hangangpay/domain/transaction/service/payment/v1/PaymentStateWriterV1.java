@@ -5,7 +5,7 @@ import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.entity.Transaction;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
 import family.fisa.hangangpay.domain.transaction.internal.payment.*;
@@ -79,14 +79,14 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
                 PaymentExecutionPrepared.from(transaction, requestHash));
     }
 
-    public PaymentExecutionResponse markUnknown(String transactionUuid) {
+    public PaymentExecuteResponse markUnknown(String transactionUuid) {
         Transaction transaction = getPaymentTransaction(transactionUuid);
         transaction.markUnknown();
 
-        return PaymentExecutionResponse.from(transaction, null, LocalDateTime.now());
+        return PaymentExecuteResponse.from(transaction, null, LocalDateTime.now());
     }
 
-    public PaymentExecutionResponse completeSuccess(
+    public PaymentExecuteResponse completeSuccess(
             String transactionUuid,
             String txHash,
             String bankTransactionId,
@@ -101,7 +101,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
         // 3. 승인번호 생성 — id는 createPaymentIntent 시점에 이미 채번됨
         transaction.assignApprovalNumber(makeApvNumber(transaction.getId()));
 
-        return PaymentExecutionResponse.from(transaction, merchant.getMerchantName(), confirmedAt);
+        return PaymentExecuteResponse.from(transaction, merchant.getMerchantName(), confirmedAt);
     }
 
     /** Bank가 결정적으로 거부한 경우 결제를 FAILED로 확정한다. */
@@ -135,7 +135,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
         return transaction.getTransactionUuid();
     }
 
-    public PaymentExecutionResponse applyRecoveryResult(
+    public PaymentExecuteResponse applyRecoveryResult(
             String transactionUuid, BankTransactionStatusResponse bankStatus) {
         Transaction transaction = getPaymentTransaction(transactionUuid);
 
@@ -153,7 +153,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
 
         Merchant merchant = getMerchant(transaction.getToParty().getId());
 
-        return PaymentExecutionResponse.from(
+        return PaymentExecuteResponse.from(
                 transaction, merchant.getMerchantName(), bankStatus.confirmedAt());
     }
 

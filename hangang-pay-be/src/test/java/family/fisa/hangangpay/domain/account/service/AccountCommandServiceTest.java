@@ -9,15 +9,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpay.client.bank.BankClient;
+import family.fisa.hangangpay.client.bank.dto.BankAccountCreateRequest;
 import family.fisa.hangangpay.client.bank.dto.BankAccountResponse;
-import family.fisa.hangangpay.client.bank.dto.CreateBankAccountRequest;
-import family.fisa.hangangpay.domain.account.dto.AccountAddRequest;
+import family.fisa.hangangpay.domain.account.dto.AccountCreateRequest;
 import family.fisa.hangangpay.domain.account.dto.AccountResponse;
 import family.fisa.hangangpay.domain.account.entity.Account;
 import family.fisa.hangangpay.domain.account.repository.AccountRepository;
 import family.fisa.hangangpay.domain.institution.entity.Institution;
 import family.fisa.hangangpay.domain.institution.service.InstitutionQueryService;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
+import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.merchant.service.MerchantQueryService;
 import family.fisa.hangangpay.domain.party.entity.Party;
 import family.fisa.hangangpay.domain.party.entity.PartyType;
@@ -35,7 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-class AccountServiceTest {
+class AccountCommandServiceTest {
 
     private static final Long PARTY_ID = 1L;
     private static final Long ACCOUNT_ID = 10L;
@@ -45,20 +46,19 @@ class AccountServiceTest {
     private static final String OWNER_NAME = "홍길동";
 
     @Mock private AccountRepository accountRepository;
+    @Mock private MerchantRepository merchantRepository;
     @Mock private PartyRepository partyRepository;
     @Mock private InstitutionQueryService institutionQueryService;
     @Mock private BankClient bankClient;
     @Mock private UserQueryService userQueryService;
     @Mock private MerchantQueryService merchantQueryService;
 
-    @InjectMocks private AccountService accountService;
+    @InjectMocks private AccountCommandService accountCommandService;
 
     @Test
     @DisplayName("사용자 계좌 추가 시 은행 계좌를 새로 생성한다")
     void addAccountCreatesBankAccount() {
-        AccountAddRequest request = new AccountAddRequest();
-        ReflectionTestUtils.setField(request, "institutionCode", INSTITUTION_CODE);
-        ReflectionTestUtils.setField(request, "accountNumber", ACCOUNT_NUMBER);
+        AccountCreateRequest request = new AccountCreateRequest(INSTITUTION_CODE, ACCOUNT_NUMBER);
 
         Institution institution =
                 Institution.builder()
@@ -90,7 +90,7 @@ class AccountServiceTest {
                             ReflectionTestUtils.setField(account, "id", ACCOUNT_ID);
                             return account;
                         });
-        given(bankClient.createBankAccount(any(CreateBankAccountRequest.class)))
+        given(bankClient.createBankAccount(any(BankAccountCreateRequest.class)))
                 .willReturn(
                         new BankAccountResponse(
                                 ACCOUNT_ID,
@@ -99,28 +99,26 @@ class AccountServiceTest {
                                 new BigDecimal("1000000"),
                                 OWNER_NAME));
 
-        AccountResponse response = accountService.addAccount(PARTY_ID, request);
+        AccountResponse response = accountCommandService.createAccount(PARTY_ID, request);
 
-        ArgumentCaptor<CreateBankAccountRequest> requestCaptor =
-                ArgumentCaptor.forClass(CreateBankAccountRequest.class);
+        ArgumentCaptor<BankAccountCreateRequest> requestCaptor =
+                ArgumentCaptor.forClass(BankAccountCreateRequest.class);
         verify(bankClient).createBankAccount(requestCaptor.capture());
         verify(bankClient, never()).getBankAccount(anyLong(), anyString());
 
-        CreateBankAccountRequest bankRequest = requestCaptor.getValue();
+        BankAccountCreateRequest bankRequest = requestCaptor.getValue();
         assertThat(bankRequest.institutionId()).isEqualTo(INSTITUTION_ID);
         assertThat(bankRequest.accountNumber()).isEqualTo(ACCOUNT_NUMBER);
         assertThat(bankRequest.ownerName()).isEqualTo(OWNER_NAME);
         assertThat(bankRequest.initialBalance()).isEqualByComparingTo("1000000");
-        assertThat(response.getAccountId()).isEqualTo(ACCOUNT_ID);
-        assertThat(response.getAccountType()).isEqualTo("SECONDARY");
+        assertThat(response.accountId()).isEqualTo(ACCOUNT_ID);
+        assertThat(response.accountType()).isEqualTo("SECONDARY");
     }
 
     @Test
     @DisplayName("가맹점 계좌 추가 시 대표자명과 초기 잔액 0원으로 은행 계좌를 생성한다")
     void addAccountCreatesMerchantBankAccount() {
-        AccountAddRequest request = new AccountAddRequest();
-        ReflectionTestUtils.setField(request, "institutionCode", INSTITUTION_CODE);
-        ReflectionTestUtils.setField(request, "accountNumber", ACCOUNT_NUMBER);
+        AccountCreateRequest request = new AccountCreateRequest(INSTITUTION_CODE, ACCOUNT_NUMBER);
 
         Institution institution =
                 Institution.builder()
@@ -158,7 +156,7 @@ class AccountServiceTest {
                             return account;
                         });
 
-        given(bankClient.createBankAccount(any(CreateBankAccountRequest.class)))
+        given(bankClient.createBankAccount(any(BankAccountCreateRequest.class)))
                 .willReturn(
                         new BankAccountResponse(
                                 ACCOUNT_ID,
@@ -167,23 +165,23 @@ class AccountServiceTest {
                                 BigDecimal.ZERO,
                                 "상점주"));
 
-        AccountResponse response = accountService.addAccount(PARTY_ID, request);
+        AccountResponse response = accountCommandService.createAccount(PARTY_ID, request);
 
-        ArgumentCaptor<CreateBankAccountRequest> requestCaptor =
-                ArgumentCaptor.forClass(CreateBankAccountRequest.class);
+        ArgumentCaptor<BankAccountCreateRequest> requestCaptor =
+                ArgumentCaptor.forClass(BankAccountCreateRequest.class);
 
         verify(bankClient).createBankAccount(requestCaptor.capture());
         verify(bankClient, never()).getBankAccount(anyLong(), anyString());
         verify(userQueryService, never()).getByPartyId(anyLong());
         verify(merchantQueryService).getByPartyId(PARTY_ID);
 
-        CreateBankAccountRequest bankRequest = requestCaptor.getValue();
+        BankAccountCreateRequest bankRequest = requestCaptor.getValue();
         assertThat(bankRequest.institutionId()).isEqualTo(INSTITUTION_ID);
         assertThat(bankRequest.accountNumber()).isEqualTo(ACCOUNT_NUMBER);
         assertThat(bankRequest.ownerName()).isEqualTo("상점주");
         assertThat(bankRequest.initialBalance()).isEqualByComparingTo("0");
 
-        assertThat(response.getAccountId()).isEqualTo(ACCOUNT_ID);
-        assertThat(response.getAccountType()).isEqualTo("SECONDARY");
+        assertThat(response.accountId()).isEqualTo(ACCOUNT_ID);
+        assertThat(response.accountType()).isEqualTo("SECONDARY");
     }
 }

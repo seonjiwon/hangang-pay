@@ -142,7 +142,15 @@ flowchart TD
   - `XxxQueryService` — 조회 전용. `@Transactional(readOnly = true)` 적용.
   - `XxxCommandService` — 쓰기 전용. `@Transactional` 적용.
 - 신규 서비스는 단일 서비스(`XxxService`)로 만들지 않는다.
-- 기존 `AccountService`, `WalletService`처럼 남아 있는 과도기 단일 서비스는 관련 기능을 수정할 때 Query/Command 분리를 우선 검토한다.
+- 과도기 단일 서비스였던 `AccountService`/`WalletService`는 제거되었다. 계좌 도메인은 `AccountQueryService`/`AccountCommandService`로 분리한다.
+- `auth`·`merchant`의 기능 단위 서비스(`AuthService`, `VerificationService`, `UserRegistrationService`, `MerchantRegistrationService`, `MerchantQrService`)는 도메인 CRUD 서비스가 아니라 의도된 기능 서비스이므로 Query/Command 분리 대상이 아니다.
+
+## Method Naming Convention
+
+- 조회는 repository에서 `find*`, service에서 `get*`를 쓴다.
+- 없으면 예외를 던지는 필수 존재 조회는 `getBy{Key}` 관용구를 쓴다. 예: `getByPartyId`, `getByCode`, `getById`.
+- 신규 저장은 `create*`. 단, 회원 온보딩은 도메인 용어 `register*`를 유지한다(`registerUser`, `registerMerchant`).
+- 수정은 `update*`(`change*`/`modify*` 금지), 삭제는 `delete*`(`remove*` 금지).
 
 ## DTO Naming Convention
 
@@ -152,6 +160,10 @@ flowchart TD
 - `Item`은 `CursorItem` 인터페이스를 구현하고 `getCursorCreatedAt()` / `getCursorId()`를 제공한다.
 - `Item` DTO는 Java `record`를 기본으로 한다.
 - `Item` DTO에는 Lombok `@Builder`를 붙이지 않는다. record canonical constructor 또는 정적 팩토리로 생성한다.
+- 모든 요청/응답 DTO는 Java `record`를 기본으로 한다. Lombok `@Getter`/`@Builder` 클래스로 새로 만들지 않는다.
+- 요청 DTO는 `{Noun}{Verb}Request` 어순을 쓴다. 예: `AccountCreateRequest`, `PaymentIntentCreateRequest`, `BankAccountCreateRequest`.
+- 플로우 실행 응답은 `{Flow}ExecuteResponse`로 통일한다. 예: `ChargeExecuteResponse`, `ExchangeExecuteResponse`, `PaymentExecuteResponse`.
+- 단일 상세 응답은 `Response`를 기본으로 하되, 다른 도메인 DTO와 이름이 겹치면 `Detail` suffix를 허용한다. 예: `MerchantPaymentDetail`, `UserChargeHistoryDetail`.
 
 ## Session Attribute Convention
 
@@ -160,7 +172,7 @@ flowchart TD
 - 컨트롤러 생성 시 세션 attribute 이름은 문자열 리터럴 대신 `SessionAttributeNames` 상수를 사용한다.
 - 예: `@SessionAttribute(SessionAttributeNames.PARTY_ID) Long partyId`, `@SessionAttribute(SessionAttributeNames.USER_ID) Long userId`
 - `@RequestParam`으로 인증 정보를 받지 않는다. 인증된 사용자 식별자는 반드시 세션에서 추출한다.
-- 예외: 현재 `AccountController`는 아직 임시 구현으로 `@RequestParam Long partyId`를 사용한다. 계좌 API를 수정할 때는 세션 기반으로 정렬한다.
+- `AccountController`는 `@SessionAttribute(name = SessionAttributeNames.PARTY_ID, required = false)`로 세션에서 `partyId`를 꺼낸다. 로그인 세션이 항상 보장되기 전까지 임시로 `required = false`를 둔다.
 
 ## Root-Level Architecture Rules
 

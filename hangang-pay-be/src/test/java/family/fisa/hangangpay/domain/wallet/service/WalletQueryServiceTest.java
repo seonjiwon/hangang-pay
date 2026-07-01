@@ -47,9 +47,9 @@ class WalletQueryServiceTest {
         WalletBalanceResponse response = walletQueryService.getBalance(partyId);
 
         // then
-        assertThat(response.getWalletAddress()).isEqualTo(address);
-        assertThat(response.getBalance()).isEqualByComparingTo("5000");
-        assertThat(response.getUnit()).isEqualTo("KRW");
+        assertThat(response.walletAddress()).isEqualTo(address);
+        assertThat(response.balance()).isEqualByComparingTo("5000");
+        assertThat(response.unit()).isEqualTo("KRW");
     }
 
     @Test

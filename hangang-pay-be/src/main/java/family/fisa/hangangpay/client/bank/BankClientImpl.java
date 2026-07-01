@@ -4,18 +4,17 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import family.fisa.hangangpay.client.bank.code.ExternalBankErrorCode;
+import family.fisa.hangangpay.client.bank.dto.BankAccountCreateRequest;
 import family.fisa.hangangpay.client.bank.dto.BankAccountResponse;
 import family.fisa.hangangpay.client.bank.dto.BankActResult;
 import family.fisa.hangangpay.client.bank.dto.BankExchangeStatus;
 import family.fisa.hangangpay.client.bank.dto.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.dto.BankWalletCreateRequest;
 import family.fisa.hangangpay.client.bank.dto.BankWalletResponse;
-import family.fisa.hangangpay.client.bank.dto.BlockchainLedgerResponse;
 import family.fisa.hangangpay.client.bank.dto.CancelRequest;
 import family.fisa.hangangpay.client.bank.dto.CancelResponse;
 import family.fisa.hangangpay.client.bank.dto.ChargeRequest;
 import family.fisa.hangangpay.client.bank.dto.ChargeResponse;
-import family.fisa.hangangpay.client.bank.dto.CreateBankAccountRequest;
-import family.fisa.hangangpay.client.bank.dto.CreateBankWalletRequest;
 import family.fisa.hangangpay.client.bank.dto.ExchangeRequest;
 import family.fisa.hangangpay.client.bank.dto.ExchangeResponse;
 import family.fisa.hangangpay.client.bank.dto.PaymentRequest;
@@ -55,7 +54,7 @@ public class BankClientImpl implements BankClient {
     private final RestClient bankRestClient;
 
     @Override
-    public BankAccountResponse createBankAccount(CreateBankAccountRequest request) {
+    public BankAccountResponse createBankAccount(BankAccountCreateRequest request) {
         // 1. 은행에 사용자 계좌 등록 요청
         ApiResponse<BankAccountResponse> response =
                 callBank(
@@ -97,7 +96,7 @@ public class BankClientImpl implements BankClient {
     }
 
     @Override
-    public BankWalletResponse createBankWallet(CreateBankWalletRequest request) {
+    public BankWalletResponse createBankWallet(BankWalletCreateRequest request) {
         // 1. 은행에 사용자 지갑 발급 요청 (Custodial, bank가 keypair 생성)
         ApiResponse<BankWalletResponse> response =
                 callBank(
@@ -295,22 +294,6 @@ public class BankClientImpl implements BankClient {
                 .body(body)
                 .retrieve()
                 .toBodilessEntity();
-    }
-
-    @Override
-    public BlockchainLedgerResponse getBlockchainLedgerByTxHash(String txHash) {
-        // 1. 은행에서 블록체인 거래 정보 조회
-        ApiResponse<BlockchainLedgerResponse> response =
-                callBank(
-                        () ->
-                                bankRestClient
-                                        .get()
-                                        .uri("/api/v1/blockchain-ledgers/tx-hash/{txHash}", txHash)
-                                        .retrieve()
-                                        .body(new ParameterizedTypeReference<>() {}));
-
-        // 2. 응답에서 결과 추출
-        return response.getResult();
     }
 
     /** Bank가 의미 있는 에러 응답을 주면 그대로 전달한다. */

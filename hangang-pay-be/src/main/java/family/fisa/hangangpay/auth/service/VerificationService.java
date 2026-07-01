@@ -1,7 +1,6 @@
 package family.fisa.hangangpay.auth.service;
 
 import family.fisa.hangangpay.auth.code.AuthErrorCode;
-import family.fisa.hangangpay.client.bank.BankClient;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import family.fisa.hangangpay.global.session.SessionAttributeNames;
 import jakarta.servlet.http.HttpSession;
@@ -16,8 +15,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class VerificationService {
-
-    private final BankClient bankClient;
 
     private static final String SESSION_SMS_CODE = "sms_code";
     private static final String SESSION_SMS_PHONE = "sms_phone";

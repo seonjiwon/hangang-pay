@@ -12,7 +12,7 @@ import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpay.domain.transaction.dto.bank.BankOutcome;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentIntentCreateRequest;
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentIntentResponse;
 import family.fisa.hangangpay.domain.transaction.entity.Transaction;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
@@ -127,7 +127,7 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
     /** Propagation.NOT_SUPPORTED: 트랜잭션 없이 실행 */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public PaymentExecutionResponse executePayment(
+    public PaymentExecuteResponse executePayment(
             Long userId, Long partyId, String transactionUuid, PaymentExecuteRequest request) {
 
         return paymentLockManager.withTransactionLock(
@@ -139,13 +139,13 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public PaymentExecutionResponse recoverPayment(Long partyId, String transactionUuid) {
+    public PaymentExecuteResponse recoverPayment(Long partyId, String transactionUuid) {
         return paymentLockManager.withTransactionLock(
                 transactionUuid, () -> doRecoverPayment(partyId, transactionUuid));
     }
 
     /** 내부 메소드 */
-    private PaymentExecutionResponse doExecutePayment(
+    private PaymentExecuteResponse doExecutePayment(
             Long userId, Long partyId, String transactionUuid, PaymentExecuteRequest request) {
 
         /** 1. 거래 조회/검증, PROCESSING 저장 */
@@ -167,7 +167,7 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
                         TransactionErrorCode.PAYMENT_FAILED);
 
         /** 3. 결과 분류 및 상태 반영 */
-        PaymentExecutionResponse response =
+        PaymentExecuteResponse response =
                 switch (outcome.type()) {
                     case SUCCESS ->
                             paymentStateWriter.completeSuccess(
@@ -186,12 +186,12 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
         return response;
     }
 
-    private PaymentExecutionResponse doRecoverPayment(Long partyId, String transactionUuid) {
+    private PaymentExecuteResponse doRecoverPayment(Long partyId, String transactionUuid) {
         // 1. 복구 대상 검증 + 복구용 uuid 확보 (UNKNOWN / PROCESSING)
         String recoveryUuid = paymentStateWriter.prepareRecovery(partyId, transactionUuid);
 
         // 2. Bank 조회로 결과 확정 (404은 은행 미도달로 간주 -> FAILED 처리)
-        PaymentExecutionResponse response = resolvePaymentRecovery(recoveryUuid);
+        PaymentExecuteResponse response = resolvePaymentRecovery(recoveryUuid);
 
         // 3. 종단으로 끝났다면, Redis 멱등 record도 정리한다. -> 고아 상태인 PROCESSING 청소
         if (response.status() == TransactionStatus.SUCCESS) {
@@ -210,7 +210,7 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
      * bankClient 호출 전 종료된 요청들은 PROCESSING 레코드가 저장되고 고아상태에 빠진다. 이런 경우는 은행쪽에 조회 응답이 404 - NOT FOUND로
      * 반환 된다.
      */
-    private PaymentExecutionResponse resolvePaymentRecovery(String recoveryUuid) {
+    private PaymentExecuteResponse resolvePaymentRecovery(String recoveryUuid) {
         try {
             // 1. 정상 조회: SUCCESS/FAILED/PROCESSING을 applyRecoveryResult가 반영한다.
             BankTransactionStatusResponse bankStatus =

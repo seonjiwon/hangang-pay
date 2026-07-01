@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecutionResponse;
+import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
 import family.fisa.hangangpay.domain.transaction.infra.redis.payment.PaymentIdempotencyRecord;
 import family.fisa.hangangpay.domain.transaction.infra.redis.payment.RedisPaymentIdempotencyStore;
@@ -108,7 +108,7 @@ class RedisPaymentIdempotencyStoreTest {
     @Test
     @DisplayName("같은 requestHash이고 snapshot이 있으면 RETURN_SNAPSHOT을 반환한다")
     void beginExecution_sameHashWithSnapshotReturnsSnapshot() throws Exception {
-        PaymentExecutionResponse snapshot = successSnapshot();
+        PaymentExecuteResponse snapshot = successSnapshot();
         PaymentIdempotencyRecord existing =
                 record(TransactionStatus.SUCCESS, REQUEST_HASH, snapshot);
 
@@ -149,7 +149,7 @@ class RedisPaymentIdempotencyStoreTest {
     void completeExecution_storesSnapshot() throws Exception {
         PaymentIdempotencyRecord existing =
                 record(TransactionStatus.PROCESSING, REQUEST_HASH, null);
-        PaymentExecutionResponse snapshot = successSnapshot();
+        PaymentExecuteResponse snapshot = successSnapshot();
 
         given(valueOperations.get(KEY)).willReturn(writeRecord(existing));
 
@@ -168,15 +168,13 @@ class RedisPaymentIdempotencyStoreTest {
     }
 
     private PaymentIdempotencyRecord record(
-            TransactionStatus status,
-            String requestHash,
-            PaymentExecutionResponse responseSnapshot) {
+            TransactionStatus status, String requestHash, PaymentExecuteResponse responseSnapshot) {
         return new PaymentIdempotencyRecord(
                 TRANSACTION_UUID, requestHash, status, TRANSACTION_ID, responseSnapshot);
     }
 
-    private PaymentExecutionResponse successSnapshot() {
-        return new PaymentExecutionResponse(
+    private PaymentExecuteResponse successSnapshot() {
+        return new PaymentExecuteResponse(
                 TRANSACTION_UUID,
                 TransactionStatus.SUCCESS,
                 "APV-2026-00000123",

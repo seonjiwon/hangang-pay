@@ -1,10 +1,11 @@
 package family.fisa.hangangpay.domain.account.controller;
 
-import family.fisa.hangangpay.domain.account.dto.AccountAddRequest;
+import family.fisa.hangangpay.domain.account.dto.AccountCreateRequest;
 import family.fisa.hangangpay.domain.account.dto.AccountListResponse;
 import family.fisa.hangangpay.domain.account.dto.AccountResponse;
 import family.fisa.hangangpay.domain.account.dto.PrimaryAccountResponse;
-import family.fisa.hangangpay.domain.account.service.AccountService;
+import family.fisa.hangangpay.domain.account.service.AccountCommandService;
+import family.fisa.hangangpay.domain.account.service.AccountQueryService;
 import family.fisa.hangangpay.global.code.success.GeneralSuccessCode;
 import family.fisa.hangangpay.global.response.ApiResponse;
 import family.fisa.hangangpay.global.session.SessionAttributeNames;
@@ -31,8 +32,11 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 @RequiredArgsConstructor
 public class AccountController {
 
-    /** 계좌 서비스 */
-    private final AccountService accountService;
+    /** 계좌 조회 서비스 */
+    private final AccountQueryService accountQueryService;
+
+    /** 계좌 쓰기 서비스 */
+    private final AccountCommandService accountCommandService;
 
     /** ACCOUNT-001 등록 계좌 목록 조회 엔드포인트 */
     @Operation(summary = "등록 계좌 목록 조회 (ACCOUNT-001)", description = "현재 로그인한 사용자의 등록된 계좌 목록을 조회한다.")
@@ -42,7 +46,7 @@ public class AccountController {
                     Long partyId) {
 
         // 계좌 목록 조회 후 응답 반환
-        AccountListResponse response = accountService.getAccounts(partyId);
+        AccountListResponse response = accountQueryService.getAccounts(partyId);
         return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.COMMON_OK, response));
     }
 
@@ -51,12 +55,12 @@ public class AccountController {
             summary = "계좌 등록 (ACCOUNT-002)",
             description = "은행 원장 확인 및 예금주 검증 후 계좌를 등록한다. 최대 3개까지 등록 가능하다.")
     @PostMapping
-    public ResponseEntity<ApiResponse<AccountResponse>> addAccount(
+    public ResponseEntity<ApiResponse<AccountResponse>> createAccount(
             @SessionAttribute(name = SessionAttributeNames.PARTY_ID, required = false) Long partyId,
-            @Valid @RequestBody AccountAddRequest request) {
+            @Valid @RequestBody AccountCreateRequest request) {
 
         // 계좌 추가 후 201 응답 반환
-        AccountResponse response = accountService.addAccount(partyId, request);
+        AccountResponse response = accountCommandService.createAccount(partyId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.onSuccess(GeneralSuccessCode.COMMON_CREATED, response));
     }
@@ -71,7 +75,7 @@ public class AccountController {
             @PathVariable Long accountId) {
 
         // 계좌 삭제 후 200 응답 반환
-        accountService.deleteAccount(partyId, accountId);
+        accountCommandService.deleteAccount(partyId, accountId);
         return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.COMMON_OK));
     }
 
@@ -80,12 +84,13 @@ public class AccountController {
             summary = "주거래 계좌 변경 (ACCOUNT-004)",
             description = "지정한 계좌를 주거래 계좌로 변경한다. 기존 주거래 계좌는 일반 계좌로 전환된다.")
     @PatchMapping("/{accountId}/primary")
-    public ResponseEntity<ApiResponse<PrimaryAccountResponse>> changePrimaryAccount(
+    public ResponseEntity<ApiResponse<PrimaryAccountResponse>> updatePrimaryAccount(
             @SessionAttribute(name = SessionAttributeNames.PARTY_ID, required = false) Long partyId,
             @PathVariable Long accountId) {
 
         // 주거래 계좌 변경 후 200 응답 반환
-        PrimaryAccountResponse response = accountService.changePrimaryAccount(partyId, accountId);
+        PrimaryAccountResponse response =
+                accountCommandService.updatePrimaryAccount(partyId, accountId);
         return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.COMMON_OK, response));
     }
 }
