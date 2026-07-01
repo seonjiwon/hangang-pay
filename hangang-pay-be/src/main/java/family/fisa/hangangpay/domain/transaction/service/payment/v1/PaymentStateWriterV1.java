@@ -44,7 +44,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
 
         transaction.validateOwner(partyId);
 
-        if (!user.matchesPaymentPin(paymentPin, passwordEncoder)) {
+        if (!passwordEncoder.matches(paymentPin, user.getPaymentPinHash())) {
             throw new BusinessException(UserErrorCode.INVALID_PIN_NUMBER);
         }
 
@@ -96,7 +96,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
         Merchant merchant = getMerchant(transaction.getToParty().getId());
 
         // 2. txHash, bankTransactionId 기록 후 SUCCESS 전환
-        transaction.completeSuccessWithResponse(txHash, bankTransactionId);
+        transaction.markSuccess(txHash, bankTransactionId);
 
         // 3. 승인번호 생성 — id는 createPaymentIntent 시점에 이미 채번됨
         transaction.assignApprovalNumber(makeApvNumber(transaction.getId()));

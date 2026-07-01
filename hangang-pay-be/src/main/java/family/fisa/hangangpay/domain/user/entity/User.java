@@ -9,7 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Entity
 @Table(name = "users")
@@ -50,12 +49,4 @@ public class User extends BaseEntity {
 
     /** 거주 지역 */
     private String region;
-
-    public boolean matchesPassword(String rawPassword, PasswordEncoder passwordEncoder) {
-        return passwordEncoder.matches(rawPassword, passwordHash);
-    }
-
-    public boolean matchesPaymentPin(String rawPaymentPin, PasswordEncoder passwordEncoder) {
-        return passwordEncoder.matches(rawPaymentPin, paymentPinHash);
-    }
 }

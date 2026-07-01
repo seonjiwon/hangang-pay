@@ -27,8 +27,6 @@ public class Party extends BaseEntity {
     private PartyType partyType;
 
     public static Party of(PartyType partyType) {
-        Party party = new Party();
-        party.partyType = partyType;
-        return party;
+        return Party.builder().partyType(partyType).build();
     }
 }

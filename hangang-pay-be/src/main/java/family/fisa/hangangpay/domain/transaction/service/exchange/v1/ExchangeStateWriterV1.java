@@ -116,7 +116,7 @@ public class ExchangeStateWriterV1 implements ExchangeStateWriter {
     public ExchangeExecuteResponse completeExchange(
             Transaction tx, String txHash, String bankTransactionId) {
 
-        tx.completeSuccessWithResponse(txHash, bankTransactionId);
+        tx.markSuccess(txHash, bankTransactionId);
         Transaction saved = transactionRepository.save(tx);
         return ExchangeExecuteResponse.from(saved);
     }
@@ -132,7 +132,7 @@ public class ExchangeStateWriterV1 implements ExchangeStateWriter {
     public ExchangeExecuteResponse markSuccess(
             String uuid, String txHash, String bankTransactionId) {
         Transaction tx = findByUuid(uuid);
-        tx.completeSuccessWithResponse(txHash, bankTransactionId); // status=SUCCESS
+        tx.markSuccess(txHash, bankTransactionId); // status=SUCCESS
         tx.assignApprovalNumber(makeApvNumber(tx.getId()));
         log.info("환전 SUCCESS. transactionUuid={}, txHash={}", uuid, txHash);
         return ExchangeExecuteResponse.from(tx);

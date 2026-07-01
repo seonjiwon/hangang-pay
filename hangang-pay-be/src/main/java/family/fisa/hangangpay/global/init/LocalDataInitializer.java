@@ -181,7 +181,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("100000"),
                                 new BigDecimal("10000"),
                                 new BigDecimal("10.00")));
-        charge1.completeSuccessWithResponse("0xCHARGETX0001", "BANK-TX-001");
+        charge1.markSuccess("0xCHARGETX0001", "BANK-TX-001");
         backdate(charge1.getId(), 15, 9);
 
         Transaction charge2 =
@@ -194,7 +194,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("50000"),
                                 new BigDecimal("5000"),
                                 new BigDecimal("10.00")));
-        charge2.completeSuccessWithResponse("0xCHARGETX0002", "BANK-TX-002");
+        charge2.markSuccess("0xCHARGETX0002", "BANK-TX-002");
         backdate(charge2.getId(), 12, 14);
 
         Transaction charge3 =
@@ -207,7 +207,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("30000"),
                                 new BigDecimal("3000"),
                                 new BigDecimal("10.00")));
-        charge3.completeSuccessWithResponse("0xCHARGETX0003", "BANK-TX-003");
+        charge3.markSuccess("0xCHARGETX0003", "BANK-TX-003");
         backdate(charge3.getId(), 9, 19);
 
         Transaction charge4 =
@@ -220,7 +220,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("20000"),
                                 new BigDecimal("2000"),
                                 new BigDecimal("10.00")));
-        charge4.completeSuccessWithResponse("0xCHARGETX0004", "BANK-TX-004");
+        charge4.markSuccess("0xCHARGETX0004", "BANK-TX-004");
         backdate(charge4.getId(), 6, 10);
 
         Transaction charge5 =
@@ -233,7 +233,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("10000"),
                                 new BigDecimal("1000"),
                                 new BigDecimal("10.00")));
-        charge5.completeSuccessWithResponse("0xCHARGETX0005", "BANK-TX-005");
+        charge5.markSuccess("0xCHARGETX0005", "BANK-TX-005");
         backdate(charge5.getId(), 3, 12);
 
         // 소비자 결제 8건 (가맹점 수취)
@@ -248,7 +248,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("8500"),
                                 "APV-2026-00000001",
                                 "떡볶이"));
-        payment1.completeSuccessWithResponse("0xPAYTX0001", null);
+        payment1.markSuccess("0xPAYTX0001", null);
         backdate(payment1.getId(), 14, 12);
 
         Transaction payment2 =
@@ -262,7 +262,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("18000"),
                                 "APV-2026-00000002",
                                 "순대국"));
-        payment2.completeSuccessWithResponse("0xPAYTX0002", null);
+        payment2.markSuccess("0xPAYTX0002", null);
         backdate(payment2.getId(), 13, 18);
 
         Transaction payment3 =
@@ -276,7 +276,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("12000"),
                                 "APV-2026-00000003",
                                 "라면"));
-        payment3.completeSuccessWithResponse("0xPAYTX0003", null);
+        payment3.markSuccess("0xPAYTX0003", null);
         backdate(payment3.getId(), 11, 13);
 
         Transaction payment4 =
@@ -290,7 +290,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("25000"),
                                 "APV-2026-00000004",
                                 "갈비탕"));
-        payment4.completeSuccessWithResponse("0xPAYTX0004", null);
+        payment4.markSuccess("0xPAYTX0004", null);
         backdate(payment4.getId(), 10, 19);
 
         Transaction payment5 =
@@ -304,7 +304,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("5000"),
                                 "APV-2026-00000005",
                                 "음료"));
-        payment5.completeSuccessWithResponse("0xPAYTX0005", null);
+        payment5.markSuccess("0xPAYTX0005", null);
         backdate(payment5.getId(), 8, 12);
 
         Transaction payment6 =
@@ -318,7 +318,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("6000"),
                                 "APV-2026-00000006",
                                 "김밥"));
-        payment6.completeSuccessWithResponse("0xPAYTX0006", null);
+        payment6.markSuccess("0xPAYTX0006", null);
         backdate(payment6.getId(), 5, 11);
 
         Transaction payment7 =
@@ -332,7 +332,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("13000"),
                                 "APV-2026-00000007",
                                 "냉면"));
-        payment7.completeSuccessWithResponse("0xPAYTX0007", null);
+        payment7.markSuccess("0xPAYTX0007", null);
         backdate(payment7.getId(), 2, 20);
 
         Transaction payment8 =
@@ -346,7 +346,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("35000"),
                                 "APV-2026-00000008",
                                 "족발"));
-        payment8.completeSuccessWithResponse("0xPAYTX0008", null);
+        payment8.markSuccess("0xPAYTX0008", null);
         backdate(payment8.getId(), 1, 13);
 
         // 가맹점 정산(환전) 4건
@@ -360,7 +360,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("20000"),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO));
-        mExchange1.completeSuccessWithResponse("0xEXCTX0001", "BANK-TX-EXC-001");
+        mExchange1.markSuccess("0xEXCTX0001", "BANK-TX-EXC-001");
         backdate(mExchange1.getId(), 10, 15);
 
         Transaction mExchange2 =
@@ -373,7 +373,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("43000"),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO));
-        mExchange2.completeSuccessWithResponse("0xEXCTX0002", "BANK-TX-EXC-002");
+        mExchange2.markSuccess("0xEXCTX0002", "BANK-TX-EXC-002");
         backdate(mExchange2.getId(), 7, 16);
 
         Transaction mExchange3 =
@@ -386,7 +386,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("15000"),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO));
-        mExchange3.completeSuccessWithResponse("0xEXCTX0003", "BANK-TX-EXC-003");
+        mExchange3.markSuccess("0xEXCTX0003", "BANK-TX-EXC-003");
         backdate(mExchange3.getId(), 3, 17);
 
         Transaction mExchange4 =
@@ -399,7 +399,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("30000"),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO));
-        mExchange4.completeSuccessWithResponse("0xEXCTX0004", "BANK-TX-EXC-004");
+        mExchange4.markSuccess("0xEXCTX0004", "BANK-TX-EXC-004");
         backdate(mExchange4.getId(), 1, 18);
 
         // 소비자 환불 1건
@@ -413,7 +413,7 @@ public class LocalDataInitializer implements ApplicationRunner {
                                 new BigDecimal("30000"),
                                 BigDecimal.ZERO,
                                 BigDecimal.ZERO));
-        uExchange.completeSuccessWithResponse("0xEXCTX0005", "BANK-TX-EXC-005");
+        uExchange.markSuccess("0xEXCTX0005", "BANK-TX-EXC-005");
         backdate(uExchange.getId(), 4, 17);
     }
 

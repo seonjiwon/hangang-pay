@@ -52,7 +52,7 @@ public class CancelStateWriterV1 implements CancelStateWriter {
         // 4. 가맹점 PIN 검증
         Merchant merchant = getMerchant(merchantPartyId);
 
-        if (!merchant.matchesPaymentPin(paymentPin, passwordEncoder)) {
+        if (!passwordEncoder.matches(paymentPin, merchant.getPaymentPinHash())) {
             throw new BusinessException(TransactionErrorCode.INVALID_PAYMENT_PIN);
         }
 
@@ -109,7 +109,7 @@ public class CancelStateWriterV1 implements CancelStateWriter {
         Transaction transaction = getTransactionByUuid(cancelTransactionUuid);
 
         // 2. txHash, bankTransactionId 기록 후 SUCCESS 전환
-        transaction.completeSuccessWithResponse(txHash, bankTransactionId);
+        transaction.markSuccess(txHash, bankTransactionId);
 
         // 3. 승인번호 생성 — id는 prepareCancel 시점에 이미 채번됨
         transaction.assignApprovalNumber(makeApvNumber(transaction.getId()));

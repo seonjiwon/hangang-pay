@@ -187,7 +187,7 @@ public class ExchangeCommandServiceV1 implements ExchangeCommandService {
                 userRepository
                         .findByParty_Id(partyId)
                         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
-        if (!user.matchesPaymentPin(paymentPin, passwordEncoder)) {
+        if (!passwordEncoder.matches(paymentPin, user.getPaymentPinHash())) {
             log.warn("환전 PIN 불일치(user). partyId={}", partyId);
             throw new BusinessException(TransactionErrorCode.INVALID_PAYMENT_PIN);
         }
@@ -200,7 +200,7 @@ public class ExchangeCommandServiceV1 implements ExchangeCommandService {
                         .findByParty_Id(partyId)
                         .orElseThrow(
                                 () -> new BusinessException(MerchantErrorCode.MERCHANT_NOT_FOUND));
-        if (!merchant.matchesPaymentPin(paymentPin, passwordEncoder)) {
+        if (!passwordEncoder.matches(paymentPin, merchant.getPaymentPinHash())) {
             log.warn("환전 PIN 불일치(merchant). partyId={}", partyId);
             throw new BusinessException(TransactionErrorCode.INVALID_PAYMENT_PIN);
         }

@@ -42,7 +42,7 @@ public class AuthService {
                         .orElseThrow(
                                 () -> new BusinessException(AuthErrorCode.INVALID_CREDENTIALS));
 
-        if (!user.matchesPassword(request.password(), passwordEncoder)) {
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
         }
         saveLoginSession(session, USER_ID, user.getId(), user.getParty().getId(), PartyType.USER);
@@ -61,7 +61,7 @@ public class AuthService {
                         .orElseThrow(
                                 () -> new BusinessException(AuthErrorCode.INVALID_CREDENTIALS));
 
-        if (!merchant.matchesPassword(request.password(), passwordEncoder)) {
+        if (!passwordEncoder.matches(request.password(), merchant.getPasswordHash())) {
             throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
         }
         saveLoginSession(

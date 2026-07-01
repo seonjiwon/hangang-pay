@@ -115,7 +115,7 @@ public class ChargeStateWriterV1 implements ChargeStateWriter {
                 userRepository
                         .findByParty_Id(partyId)
                         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
-        if (!user.matchesPaymentPin(paymentPin, passwordEncoder)) {
+        if (!passwordEncoder.matches(paymentPin, user.getPaymentPinHash())) {
             throw new BusinessException(TransactionErrorCode.INVALID_PAYMENT_PIN);
         }
 
@@ -168,7 +168,7 @@ public class ChargeStateWriterV1 implements ChargeStateWriter {
             LocalDateTime confirmedAt,
             BigDecimal walletBalance) {
         Transaction transaction = getChargeTransaction(transactionUuid);
-        transaction.completeSuccessWithResponse(txHash, bankTransactionId);
+        transaction.markSuccess(txHash, bankTransactionId);
         log.info("충전 성공. transactionUuid={}, txHash={}", transactionUuid, txHash);
         return ChargeExecuteResponse.from(transaction, confirmedAt, walletBalance);
     }

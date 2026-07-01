@@ -221,7 +221,7 @@ public class Transaction extends BaseEntity {
     }
 
     /** BankClient 응답을 반영해 성공 상태로 마무리 (JPA 변경감지) */
-    public void completeSuccessWithResponse(String txHash, String bankTransactionId) {
+    public void markSuccess(String txHash, String bankTransactionId) {
         this.txHash = txHash;
         this.bankTransactionId = bankTransactionId;
         this.status = TransactionStatus.SUCCESS;

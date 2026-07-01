@@ -174,7 +174,7 @@ public class AccountCommandService {
         // 계좌가 존재한는 경우 업데이트
         if (existing.isPresent()) {
             account = existing.get();
-            account.update(institution, request.accountNumber());
+            account.updateBankAccount(institution, request.accountNumber());
 
             log.info(
                     "가맹점 정산 계좌 수정: partyId={}, accountId={}, institutionCode={}",
