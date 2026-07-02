@@ -17,12 +17,12 @@ public class RedisPaymentRateLimiter implements PaymentRateLimiter {
 
     private static final String INTENT_KEY_PREFIX = "payment:rate:intent:";
     private static final String EXECUTE_KEY_PREFIX = "payment:rate:execute:";
-    private static final String RECOVERY_KEY_PREFIX = "payment:rate:recovery:";
+    private static final String RECONCILE_KEY_PREFIX = "payment:rate:recovery:";
     private static final String BANK_OUTBOUND_KEY = "payment:rate:bank-outbound";
 
     private static final Duration TOKEN_BUCKET_TTL = Duration.ofMinutes(30);
     private static final Duration BANK_OUTBOUND_TTL = Duration.ofMinutes(1);
-    private static final Duration RECOVERY_WINDOW = Duration.ofSeconds(60);
+    private static final Duration RECONCILE_WINDOW = Duration.ofSeconds(60);
 
     private static final long INTENT_CAPACITY = 10L;
     private static final double INTENT_REFILL_RATE_PER_MS = 1.0d / 60_000;
@@ -33,7 +33,7 @@ public class RedisPaymentRateLimiter implements PaymentRateLimiter {
     private static final long BANK_OUTBOUND_CAPACITY = 50L;
     private static final double BANK_OUTBOUND_REFILL_RATE_PER_MS = 10.0d / 1_000;
 
-    private static final long RECOVERY_LIMIT = 3L;
+    private static final long RECONCILE_LIMIT = 3L;
 
     private static final DefaultRedisScript<Long> TOKEN_BUCKET_SCRIPT =
             new DefaultRedisScript<>(
@@ -115,8 +115,8 @@ public class RedisPaymentRateLimiter implements PaymentRateLimiter {
     }
 
     @Override
-    public void checkRecoveryRateLimit(Long partyId, String transactionUuid) {
-        checkSlidingWindow(RECOVERY_KEY_PREFIX + partyId, RECOVERY_WINDOW, RECOVERY_LIMIT);
+    public void checkReconcileRateLimit(Long partyId, String transactionUuid) {
+        checkSlidingWindow(RECONCILE_KEY_PREFIX + partyId, RECONCILE_WINDOW, RECONCILE_LIMIT);
     }
 
     @Override

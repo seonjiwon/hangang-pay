@@ -85,12 +85,6 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         return jpaRepository.findByIdAndTransactionTypeIn(id, types);
     }
 
-    /** 스케줄러용 - UNKNOWN 상태 PAYMENT 전체 목록 조회 */
-    @Override
-    public List<Transaction> findAllUnknownByType(TransactionType type) {
-        return jpaRepository.findByStatusAndTransactionType(TransactionStatus.UNKNOWN, type);
-    }
-
     /** 특정 월 거래 유형별 누적 금액 조회 */
     @Override
     public BigDecimal sumMonthlyAmount(
@@ -165,7 +159,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
-    public Optional<Transaction> findRecoverableCancelByOriginalTransactionUuid(
+    public Optional<Transaction> findReconcilableCancelByOriginalTransactionUuid(
             String originalTransactionUuid) {
         // UNKNOWN + 오래된 PROCESSING(sweep 대상) 둘 다 복구 가능 CANCEL로 본다.
         return jpaRepository.findByOriginalTransactionUuidAndTransactionTypeAndStatusIn(
@@ -185,9 +179,9 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
-    public List<Transaction> findExchangeReconcileTargets(int maxRetry, LocalDateTime threshold) {
-        return jpaRepository.findExchangeReconcileTargets(
-                TransactionType.EXCHANGE, maxRetry, threshold);
+    public List<Transaction> findReconcileTargets(
+            TransactionType type, int maxAttempts, LocalDateTime threshold) {
+        return jpaRepository.findReconcileTargets(type, maxAttempts, threshold);
     }
 
     @Override
@@ -197,27 +191,10 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     @Override
-    public List<Transaction> findStaleProcessingByType(
-            TransactionType type, LocalDateTime threshold, int maxAttempts) {
-        // status는 PROCESSING으로 고정해 넘긴다.
-        return jpaRepository
-                .findByStatusAndTransactionTypeAndUpdatedAtBeforeAndReconcileAttemptCountLessThan(
-                        TransactionStatus.PROCESSING, type, threshold, maxAttempts);
-    }
-
-    @Override
-    public List<Transaction> findAbandonedProcessingByType(
-            TransactionType type, LocalDateTime threshold, int maxAttempts) {
-        return jpaRepository
-                .findByStatusAndTransactionTypeAndUpdatedAtBeforeAndReconcileAttemptCount(
-                        TransactionStatus.PROCESSING, type, threshold, maxAttempts);
-    }
-
-    @Override
-    public List<Transaction> findExchangeAbandonedTargets(int maxRetry) {
-        return jpaRepository.findExchangeAbandonedTargets(
-                TransactionType.EXCHANGE,
+    public List<Transaction> findAbandonedTargets(TransactionType type, int maxAttempts) {
+        return jpaRepository.findAbandonedTargets(
+                type,
                 List.of(TransactionStatus.PROCESSING, TransactionStatus.UNKNOWN),
-                maxRetry);
+                maxAttempts);
     }
 }

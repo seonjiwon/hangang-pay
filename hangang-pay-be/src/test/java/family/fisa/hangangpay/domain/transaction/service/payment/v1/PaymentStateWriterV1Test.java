@@ -162,10 +162,10 @@ class PaymentStateWriterV1Test {
         given(transactionRepository.findByTransactionUuid(TRANSACTION_UUID))
                 .willReturn(Optional.of(transaction));
 
-        String result = paymentStateWriter.prepareRecovery(USER_PARTY_ID, TRANSACTION_UUID);
+        String result = paymentStateWriter.prepareReconcile(USER_PARTY_ID, TRANSACTION_UUID);
 
         assertThat(result).isEqualTo(TRANSACTION_UUID);
-        verify(paymentRateLimiter).checkRecoveryRateLimit(USER_PARTY_ID, TRANSACTION_UUID);
+        verify(paymentRateLimiter).checkReconcileRateLimit(USER_PARTY_ID, TRANSACTION_UUID);
         verify(paymentRateLimiter).checkBankOutboundRateLimit();
     }
 
@@ -177,11 +177,11 @@ class PaymentStateWriterV1Test {
                 .willReturn(Optional.of(transaction));
 
         assertThatThrownBy(
-                        () -> paymentStateWriter.prepareRecovery(USER_PARTY_ID, TRANSACTION_UUID))
+                        () -> paymentStateWriter.prepareReconcile(USER_PARTY_ID, TRANSACTION_UUID))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("code", TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);
 
-        verify(paymentRateLimiter, never()).checkRecoveryRateLimit(any(), any());
+        verify(paymentRateLimiter, never()).checkReconcileRateLimit(any(), any());
         verify(paymentRateLimiter, never()).checkBankOutboundRateLimit();
     }
 
@@ -195,7 +195,7 @@ class PaymentStateWriterV1Test {
         givenRecoveryApplyBase(transaction);
 
         PaymentExecuteResponse response =
-                paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus);
+                paymentStateWriter.applyReconcileResult(TRANSACTION_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.SUCCESS);
         assertThat(response.merchantName()).isEqualTo("성수 한강카페");
@@ -213,7 +213,7 @@ class PaymentStateWriterV1Test {
         givenRecoveryApplyBase(transaction);
 
         PaymentExecuteResponse response =
-                paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus);
+                paymentStateWriter.applyReconcileResult(TRANSACTION_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.FAILED);
         assertThat(transaction.getStatus()).isEqualTo(TransactionStatus.FAILED);
@@ -230,7 +230,7 @@ class PaymentStateWriterV1Test {
         givenRecoveryApplyBase(transaction);
 
         PaymentExecuteResponse response =
-                paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus);
+                paymentStateWriter.applyReconcileResult(TRANSACTION_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.UNKNOWN);
         assertThat(transaction.getStatus()).isEqualTo(TransactionStatus.UNKNOWN);
@@ -248,7 +248,7 @@ class PaymentStateWriterV1Test {
                 .willReturn(Optional.of(transaction));
 
         assertThatThrownBy(
-                        () -> paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus))
+                        () -> paymentStateWriter.applyReconcileResult(TRANSACTION_UUID, bankStatus))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue(
                         "code", TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);

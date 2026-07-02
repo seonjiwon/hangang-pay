@@ -23,13 +23,13 @@ public interface PaymentStateWriter {
     void completeFailed(String transactionUuid);
 
     /** 복구했지만 은행이 아직 처리 중일 때 재조정 시도 횟수를 1 올린다. (cap 진행용) */
-    void incrementRecoveryAttempt(String transactionUuid);
+    void incrementReconcileAttempt(String transactionUuid);
 
     /** 자동 복구 시도 한도를 소진한 결제를 EXPIRED 터미널로 닫는다. */
     void markExpired(String transactionUuid);
 
-    String prepareRecovery(Long partyId, String transactionUuid);
+    String prepareReconcile(Long partyId, String transactionUuid);
 
-    PaymentExecuteResponse applyRecoveryResult(
+    PaymentExecuteResponse applyReconcileResult(
             String transactionUuid, BankTransactionStatusResponse bankStatus);
 }

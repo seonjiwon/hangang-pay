@@ -109,7 +109,7 @@ class RedisPaymentRateLimiterTest {
                                 anyString()))
                 .willReturn(0L);
 
-        assertThatThrownBy(() -> rateLimiter.checkRecoveryRateLimit(PARTY_ID, TRANSACTION_UUID))
+        assertThatThrownBy(() -> rateLimiter.checkReconcileRateLimit(PARTY_ID, TRANSACTION_UUID))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue(
                         "code", TransactionErrorCode.PAYMENT_RATE_LIMIT_EXCEEDED);

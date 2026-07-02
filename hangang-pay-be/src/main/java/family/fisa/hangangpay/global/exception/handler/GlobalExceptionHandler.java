@@ -1,22 +1,28 @@
 package family.fisa.hangangpay.global.exception.handler;
 
+import family.fisa.hangangpay.client.bank.BankErrorInterpreter;
+import family.fisa.hangangpay.client.bank.exception.BankError;
+import family.fisa.hangangpay.client.bank.exception.BankException;
 import family.fisa.hangangpay.global.code.error.BaseErrorCode;
 import family.fisa.hangangpay.global.code.error.GeneralErrorCode;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import family.fisa.hangangpay.global.response.ApiResponse;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final BankErrorInterpreter bankErrorInterpreter;
 
     /** Business Exception 처리 */
     @ExceptionHandler(BusinessException.class)
@@ -33,16 +39,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorCode.getStatus()).body(errorResponse);
     }
 
-    /** 은행 서버가 오류 응답을 반환한 경우 */
-    @ExceptionHandler(RestClientResponseException.class)
-    public ResponseEntity<ApiResponse<?>> handleBankServerException(
-            RestClientResponseException ex) {
-        log.warn(
-                "Bank server returned error. status={}, body={}",
-                ex.getStatusCode(),
-                ex.getResponseBodyAsString());
+    /** 은행 연동 실패를 정규화된 에러 코드로 변환 (BankErrorInterpreter가 status·bank code로 판정) */
+    @ExceptionHandler(BankException.class)
+    public ResponseEntity<ApiResponse<?>> handleBankException(BankException ex) {
+        BankError error = ex.getError();
+        log.warn("Bank call failed. status={}, code={}", error.status(), error.code());
 
-        BaseErrorCode errorCode = GeneralErrorCode.BANK_SERVER_ERROR;
+        BaseErrorCode errorCode = bankErrorInterpreter.toResponseCode(error);
         return ResponseEntity.status(errorCode.getStatus()).body(ApiResponse.onFailure(errorCode));
     }
 

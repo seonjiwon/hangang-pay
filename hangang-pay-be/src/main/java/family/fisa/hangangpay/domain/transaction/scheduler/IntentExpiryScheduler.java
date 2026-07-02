@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 /**
  * TTL 지난 PENDING intent를 EXPIRED 처리하는 스케줄러.
  *
- * <p>결제·충전·환전 intent 만료를 함께 담당한다(5분 주기).
+ * <p>결제·충전·환전 intent 만료를 함께 담당한다(1분 주기).
  */
 @Slf4j
 @Component
@@ -30,7 +30,7 @@ public class IntentExpiryScheduler {
     private final ExchangeStateWriter exchangeStateWriter;
 
     /** TTL 지난 PENDING 결제 intent를 조건부 UPDATE로 일괄 EXPIRED 처리 */
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 * * * * *")
     @SchedulerLock(name = "expireStalePaymentIntents", lockAtMostFor = "5m", lockAtLeastFor = "5s")
     public void expirePaymentIntents() {
         LocalDateTime now = LocalDateTime.now();
@@ -46,7 +46,7 @@ public class IntentExpiryScheduler {
     }
 
     /** TTL 지난 PENDING 충전 intent를 EXPIRED 처리 */
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 * * * * *")
     @SchedulerLock(name = "expireStaleChargeIntents", lockAtMostFor = "5m", lockAtLeastFor = "5s")
     public void expireChargeIntents() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(INTENT_TTL_MINUTES);
@@ -66,7 +66,7 @@ public class IntentExpiryScheduler {
     }
 
     /** TTL 지난 PENDING 환전 intent를 EXPIRED 처리 */
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 * * * * *")
     @SchedulerLock(name = "expireStaleExchangeIntents", lockAtMostFor = "5m", lockAtLeastFor = "5s")
     public void expireExchangeIntents() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(INTENT_TTL_MINUTES);

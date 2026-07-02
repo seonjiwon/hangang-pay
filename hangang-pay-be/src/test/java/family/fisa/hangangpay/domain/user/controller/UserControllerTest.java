@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import family.fisa.hangangpay.client.bank.BankErrorInterpreter;
 import family.fisa.hangangpay.domain.transaction.service.charge.ChargeQueryService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeQueryService;
 import family.fisa.hangangpay.domain.transaction.service.history.HistoryQueryService;
@@ -27,7 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, BankErrorInterpreter.class})
 class UserControllerTest {
 
     @Autowired private MockMvc mockMvc;

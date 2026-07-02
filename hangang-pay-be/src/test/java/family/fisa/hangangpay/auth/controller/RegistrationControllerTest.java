@@ -11,6 +11,7 @@ import family.fisa.hangangpay.auth.dto.response.UserRegisterResponse;
 import family.fisa.hangangpay.auth.service.BusinessInfoQueryService;
 import family.fisa.hangangpay.auth.service.MerchantRegistrationService;
 import family.fisa.hangangpay.auth.service.UserRegistrationService;
+import family.fisa.hangangpay.client.bank.BankErrorInterpreter;
 import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
 import family.fisa.hangangpay.domain.merchant.dto.response.BusinessInfoResponse;
 import family.fisa.hangangpay.domain.merchant.dto.response.MerchantRegisterResponse;
@@ -29,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RegistrationController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, BankErrorInterpreter.class})
 class RegistrationControllerTest {
 
     @Autowired private MockMvc mockMvc;

@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import family.fisa.hangangpay.client.bank.BankErrorInterpreter;
 import family.fisa.hangangpay.domain.account.service.AccountCommandService;
 import family.fisa.hangangpay.domain.merchant.dto.response.MerchantPaymentDetailResponse;
 import family.fisa.hangangpay.domain.merchant.service.MerchantQrService;
@@ -12,6 +13,7 @@ import family.fisa.hangangpay.domain.merchant.service.MerchantQueryService;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.MerchantPaymentDetail;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionType;
 import family.fisa.hangangpay.domain.transaction.service.cancel.CancelCommandService;
+import family.fisa.hangangpay.domain.transaction.service.cancel.CancelReconcileService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeCommandService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeQueryService;
 import family.fisa.hangangpay.domain.transaction.service.payment.PaymentQueryService;
@@ -30,7 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(MerchantController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, BankErrorInterpreter.class})
 class MerchantControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -42,6 +44,7 @@ class MerchantControllerTest {
     @MockitoBean private ExchangeQueryService exchangeQueryService;
     @MockitoBean private ExchangeCommandService exchangeCommandService;
     @MockitoBean private CancelCommandService cancelCommandService;
+    @MockitoBean private CancelReconcileService cancelReconcileService;
 
     @Test
     @DisplayName("가맹점 결제 상세 조회는 PAYMENT/CANCEL 타입과 detail을 함께 반환한다")

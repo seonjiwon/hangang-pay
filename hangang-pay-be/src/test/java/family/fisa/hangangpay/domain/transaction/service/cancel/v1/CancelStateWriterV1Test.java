@@ -266,12 +266,12 @@ class CancelStateWriterV1Test {
                                 TRANSACTION_ID, List.of(TransactionType.PAYMENT)))
                 .willReturn(Optional.of(original));
         given(
-                        transactionRepository.findRecoverableCancelByOriginalTransactionUuid(
+                        transactionRepository.findReconcilableCancelByOriginalTransactionUuid(
                                 TRANSACTION_UUID))
                 .willReturn(Optional.of(cancelTx));
 
         CancelExecutionPrepared prepared =
-                cancelStateWriter.prepareRecovery(MERCHANT_PARTY_ID, TRANSACTION_ID);
+                cancelStateWriter.prepareReconcile(MERCHANT_PARTY_ID, TRANSACTION_ID);
 
         assertThat(prepared.cancelTransactionUuid()).isEqualTo(CANCEL_UUID);
         assertThat(prepared.originalTransactionUuid()).isEqualTo(TRANSACTION_UUID);
@@ -289,7 +289,7 @@ class CancelStateWriterV1Test {
                 .willReturn(Optional.of(original));
 
         assertThatThrownBy(
-                        () -> cancelStateWriter.prepareRecovery(MERCHANT_PARTY_ID, TRANSACTION_ID))
+                        () -> cancelStateWriter.prepareReconcile(MERCHANT_PARTY_ID, TRANSACTION_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("code", TransactionErrorCode.PAYMENT_CANCEL_FORBIDDEN);
     }
@@ -303,12 +303,12 @@ class CancelStateWriterV1Test {
                                 TRANSACTION_ID, List.of(TransactionType.PAYMENT)))
                 .willReturn(Optional.of(original));
         given(
-                        transactionRepository.findRecoverableCancelByOriginalTransactionUuid(
+                        transactionRepository.findReconcilableCancelByOriginalTransactionUuid(
                                 TRANSACTION_UUID))
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(
-                        () -> cancelStateWriter.prepareRecovery(MERCHANT_PARTY_ID, TRANSACTION_ID))
+                        () -> cancelStateWriter.prepareReconcile(MERCHANT_PARTY_ID, TRANSACTION_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("code", TransactionErrorCode.CANCEL_NOT_RECOVERABLE);
     }
@@ -324,7 +324,7 @@ class CancelStateWriterV1Test {
                 .willReturn(Optional.of(cancelTx));
 
         PaymentCancelResponse response =
-                cancelStateWriter.applyRecoveryResult(CANCEL_UUID, bankStatus);
+                cancelStateWriter.applyReconcileResult(CANCEL_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.SUCCESS);
         assertThat(cancelTx.getStatus()).isEqualTo(TransactionStatus.SUCCESS);
@@ -342,7 +342,7 @@ class CancelStateWriterV1Test {
                 .willReturn(Optional.of(cancelTx));
 
         PaymentCancelResponse response =
-                cancelStateWriter.applyRecoveryResult(CANCEL_UUID, bankStatus);
+                cancelStateWriter.applyReconcileResult(CANCEL_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.FAILED);
         assertThat(cancelTx.getStatus()).isEqualTo(TransactionStatus.FAILED);
@@ -359,7 +359,7 @@ class CancelStateWriterV1Test {
                 .willReturn(Optional.of(cancelTx));
 
         PaymentCancelResponse response =
-                cancelStateWriter.applyRecoveryResult(CANCEL_UUID, bankStatus);
+                cancelStateWriter.applyReconcileResult(CANCEL_UUID, bankStatus);
 
         assertThat(response.status()).isEqualTo(TransactionStatus.UNKNOWN);
         assertThat(cancelTx.getStatus()).isEqualTo(TransactionStatus.UNKNOWN);
@@ -375,7 +375,7 @@ class CancelStateWriterV1Test {
         given(transactionRepository.findByTransactionUuid(CANCEL_UUID))
                 .willReturn(Optional.of(cancelTx));
 
-        assertThatThrownBy(() -> cancelStateWriter.applyRecoveryResult(CANCEL_UUID, bankStatus))
+        assertThatThrownBy(() -> cancelStateWriter.applyReconcileResult(CANCEL_UUID, bankStatus))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue(
                         "code", TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);

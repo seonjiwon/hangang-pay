@@ -5,7 +5,7 @@ public interface PaymentRateLimiter {
 
     void checkExecutionRateLimit(Long partyId, Long merchantPartyId, String transactionUuid);
 
-    void checkRecoveryRateLimit(Long partyId, String transactionUuid);
+    void checkReconcileRateLimit(Long partyId, String transactionUuid);
 
     void checkBankOutboundRateLimit();
 }

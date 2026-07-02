@@ -143,3 +143,4 @@ Types: `feat` `fix` `chore` `refactor` `docs` `test` `style`
 - `main`에 직접 push 금지
 - BE·FE 변경을 하나의 커밋에 혼용 금지
 - `hangang-pay-blockchain/`에 코드 생성 금지
+- AI 에이전트(Claude/Codex 등)는 git commit을 생성하지 않는다 — 커밋은 사용자가 직접 한다. (브랜치 생성도 금지)

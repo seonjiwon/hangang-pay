@@ -27,13 +27,13 @@ public interface CancelStateWriter {
     void completeFailed(String transactionUuid);
 
     /** 복구했지만 은행이 아직 처리 중일 때 재조정 시도 횟수를 1 올린다. (cap 진행용) */
-    void incrementRecoveryAttempt(String cancelTransactionUuid);
+    void incrementReconcileAttempt(String cancelTransactionUuid);
 
     /** 자동 복구 시도 한도를 소진한 취소를 EXPIRED 터미널로 닫는다. */
     void markExpired(String cancelTransactionUuid);
 
-    CancelExecutionPrepared prepareRecovery(Long merchantPartyId, Long transactionId);
+    CancelExecutionPrepared prepareReconcile(Long merchantPartyId, Long transactionId);
 
-    PaymentCancelResponse applyRecoveryResult(
+    PaymentCancelResponse applyReconcileResult(
             String cancelTransactionUuid, BankTransactionStatusResponse bankStatus);
 }

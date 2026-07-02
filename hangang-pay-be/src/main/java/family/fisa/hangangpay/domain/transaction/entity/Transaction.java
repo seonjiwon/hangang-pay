@@ -224,14 +224,14 @@ public class Transaction extends BaseEntity {
     }
 
     /** Bank 조회 결과가 SUCCESS면 로컬 거래도 성공으로 확정한다. */
-    public void recoverSuccess(String txHash, String bankTransactionId) {
+    public void reconcileSuccess(String txHash, String bankTransactionId) {
         this.txHash = txHash;
         this.bankTransactionId = bankTransactionId;
         this.status = TransactionStatus.SUCCESS;
     }
 
     /** Bank 조회 결과가 FAILED면 로컬 거래도 실패로 확정한다. */
-    public void recoverFailed() {
+    public void reconcileFailed() {
         this.status = TransactionStatus.FAILED;
     }
 
@@ -263,7 +263,7 @@ public class Transaction extends BaseEntity {
     }
 
     /** UNKNOWN/PROCESSING 결제만 Bank 상태 조회로 복구할 수 있다. */
-    public void validateRecoverableStatus() {
+    public void validateReconcilableStatus() {
         if (this.status != TransactionStatus.UNKNOWN
                 && this.status != TransactionStatus.PROCESSING) {
             throw new BusinessException(TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);

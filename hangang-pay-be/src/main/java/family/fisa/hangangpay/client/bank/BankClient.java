@@ -22,8 +22,8 @@ public interface BankClient {
     // 거래
     ChargeResponse charge(ChargeRequest request);
 
-    /** 환전 실행. 결과를 SUCCESS/FAILURE/UNKNOWN으로 분류해 반환한다. */
-    BankActResult exchange(ExchangeRequest request);
+    /** 환전 실행. 성공 body를 반환하고, 실패는 BankException으로 던진다(분류는 executor가 담당). */
+    ExchangeResponse exchange(ExchangeRequest request);
 
     /** 환전 상태 조회. SUCCESS/FAILED/PENDING/NOT_FOUND reconcile에서 사용 */
     BankExchangeStatus getStatus(String transactionUuid);

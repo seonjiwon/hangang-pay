@@ -112,7 +112,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
     }
 
     /** 복구했지만 은행이 아직 처리 중일 때 재조정 시도 횟수를 1 올린다. (cap 진행용) */
-    public void incrementRecoveryAttempt(String transactionUuid) {
+    public void incrementReconcileAttempt(String transactionUuid) {
         Transaction transaction = getPaymentTransaction(transactionUuid);
         transaction.incrementReconcileAttempt();
     }
@@ -123,29 +123,29 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
         transaction.markExpired();
     }
 
-    public String prepareRecovery(Long partyId, String transactionUuid) {
+    public String prepareReconcile(Long partyId, String transactionUuid) {
         Transaction transaction = getPaymentTransaction(transactionUuid);
 
         transaction.validateOwner(partyId);
-        transaction.validateRecoverableStatus();
+        transaction.validateReconcilableStatus();
 
-        paymentRateLimiter.checkRecoveryRateLimit(partyId, transactionUuid);
+        paymentRateLimiter.checkReconcileRateLimit(partyId, transactionUuid);
         paymentRateLimiter.checkBankOutboundRateLimit();
 
         return transaction.getTransactionUuid();
     }
 
-    public PaymentExecuteResponse applyRecoveryResult(
+    public PaymentExecuteResponse applyReconcileResult(
             String transactionUuid, BankTransactionStatusResponse bankStatus) {
         Transaction transaction = getPaymentTransaction(transactionUuid);
 
         if (bankStatus.status() == TransactionStatus.SUCCESS) {
-            validateBankSuccessRecoveryResult(bankStatus);
-            transaction.recoverSuccess(null, String.valueOf(bankStatus.bankTransactionId()));
+            validateBankSuccessReconcileResult(bankStatus);
+            transaction.reconcileSuccess(null, String.valueOf(bankStatus.bankTransactionId()));
         }
 
         if (bankStatus.status() == TransactionStatus.FAILED) {
-            transaction.recoverFailed();
+            transaction.reconcileFailed();
         }
 
         // PROCESSING(은행 아직 처리 중)이면 상태를 바꾸지 않고 현재 상태(UNKNOWN/PROCESSING) 그대로 반환한다.
@@ -180,7 +180,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
         return "APV-" + LocalDateTime.now().getYear() + "-" + String.format("%08d", id);
     }
 
-    private void validateBankSuccessRecoveryResult(BankTransactionStatusResponse bankStatus) {
+    private void validateBankSuccessReconcileResult(BankTransactionStatusResponse bankStatus) {
         if (bankStatus.bankTransactionId() == null) {
             throw new BusinessException(TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
         }

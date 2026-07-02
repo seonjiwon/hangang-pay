@@ -5,17 +5,17 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.BankErrorInterpreter;
 import family.fisa.hangangpay.client.bank.dto.response.CancelResponse;
+import family.fisa.hangangpay.client.bank.exception.BankError;
+import family.fisa.hangangpay.client.bank.exception.BankException;
 import family.fisa.hangangpay.domain.party.entity.Party;
 import family.fisa.hangangpay.domain.party.entity.PartyType;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
@@ -35,7 +35,6 @@ import family.fisa.hangangpay.domain.transaction.service.support.v1.BankCallExec
 import family.fisa.hangangpay.domain.wallet.entity.Wallet;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -43,11 +42,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClientResponseException;
+import org.springframework.http.HttpStatusCode;
 
 @ExtendWith(MockitoExtension.class)
 class CancelCommandServiceV1Test {
@@ -81,7 +78,7 @@ class CancelCommandServiceV1Test {
                         cancelLockManager,
                         cancelStateWriter,
                         cancelRequestHashGenerator,
-                        new BankCallExecutorV1());
+                        new BankCallExecutorV1(new BankErrorInterpreter()));
 
         // 취소 멱등 해시 생성기는 비-null 해시를 반환해야 beginCancel(anyString, anyString) 매칭이 성립한다.
         lenient()
@@ -238,8 +235,7 @@ class CancelCommandServiceV1Test {
         given(cancelStateWriter.prepareCancel(MERCHANT_PARTY_ID, TRANSACTION_ID, "123456"))
                 .willReturn(prepared);
         // 3. Bank 네트워크 오류 — 요청이 도달했는지 알 수 없다
-        given(bankClient.cancel(prepared.toBankCancelRequest()))
-                .willThrow(new ResourceAccessException("connection timed out"));
+        given(bankClient.cancel(prepared.toBankCancelRequest())).willThrow(timeoutException());
         given(cancelStateWriter.markUnknown(CANCEL_UUID)).willReturn(unknownResponse);
 
         PaymentCancelResponse response =
@@ -279,7 +275,7 @@ class CancelCommandServiceV1Test {
         given(cancelStateWriter.prepareCancel(MERCHANT_PARTY_ID, TRANSACTION_ID, "123456"))
                 .willReturn(prepared);
         given(bankClient.cancel(prepared.toBankCancelRequest()))
-                .willThrow(bankError(422, "Unprocessable Entity", "TRANSACTION_ALREADY_FAILED"));
+                .willThrow(bankException(422, "TRANSACTION_ALREADY_FAILED"));
 
         assertThatThrownBy(
                         () ->
@@ -326,10 +322,7 @@ class CancelCommandServiceV1Test {
         given(cancelStateWriter.prepareCancel(MERCHANT_PARTY_ID, TRANSACTION_ID, "123456"))
                 .willReturn(prepared);
         // 3. Bank 5xx
-        given(bankClient.cancel(prepared.toBankCancelRequest()))
-                .willThrow(
-                        new RestClientResponseException(
-                                "500", 500, "Internal Server Error", null, null, null));
+        given(bankClient.cancel(prepared.toBankCancelRequest())).willThrow(bankServerException());
         given(cancelStateWriter.markUnknown(CANCEL_UUID)).willReturn(unknownResponse);
 
         PaymentCancelResponse response =
@@ -346,176 +339,6 @@ class CancelCommandServiceV1Test {
         verify(cancelStateWriter, never()).completeSuccess(any(), any(), any(), any());
     }
 
-    // ===== recover =====
-
-    @Test
-    @DisplayName("UNKNOWN CANCEL이 Bank SUCCESS이면 SUCCESS로 복구된다")
-    void recoverCancel_successFromUnknown() {
-        CancelExecutionPrepared prepared = cancelRecoveryPrepared();
-        BankTransactionStatusResponse bankStatus =
-                cancelRecoveryBankStatus(TransactionStatus.SUCCESS);
-        PaymentCancelResponse expected = cancelRecoveryResponse(TransactionStatus.SUCCESS);
-
-        givenCancelRecoveryBase(prepared, bankStatus, expected);
-
-        PaymentCancelResponse response =
-                cancelCommandService.recoverCancel(MERCHANT_PARTY_ID, TRANSACTION_ID);
-
-        assertThat(response).isSameAs(expected);
-
-        InOrder inOrder = inOrder(cancelStateWriter, bankClient);
-        inOrder.verify(cancelStateWriter).prepareRecovery(MERCHANT_PARTY_ID, TRANSACTION_ID);
-        inOrder.verify(bankClient).getTransactionStatus(CANCEL_UUID);
-        inOrder.verify(cancelStateWriter).applyRecoveryResult(CANCEL_UUID, bankStatus);
-        verify(cancelIdempotencyStore).completeCancel(TRANSACTION_UUID, expected);
-    }
-
-    @Test
-    @DisplayName("UNKNOWN CANCEL이 Bank FAILED이면 FAILED로 확정된다")
-    void recoverCancel_failedFromUnknown() {
-        CancelExecutionPrepared prepared = cancelRecoveryPrepared();
-        BankTransactionStatusResponse bankStatus =
-                cancelRecoveryBankStatus(TransactionStatus.FAILED);
-        PaymentCancelResponse expected = cancelRecoveryResponse(TransactionStatus.FAILED);
-
-        givenCancelRecoveryBase(prepared, bankStatus, expected);
-
-        PaymentCancelResponse response =
-                cancelCommandService.recoverCancel(MERCHANT_PARTY_ID, TRANSACTION_ID);
-
-        assertThat(response).isSameAs(expected);
-        verify(cancelIdempotencyStore, never()).completeCancel(any(), any());
-    }
-
-    @Test
-    @DisplayName("Bank가 아직 PROCESSING이면 CANCEL 상태를 UNKNOWN으로 유지한다")
-    void recoverCancel_keepsUnknownWhenBankStillProcessing() {
-        CancelExecutionPrepared prepared = cancelRecoveryPrepared();
-        BankTransactionStatusResponse bankStatus =
-                cancelRecoveryBankStatus(TransactionStatus.PROCESSING);
-        PaymentCancelResponse expected = cancelRecoveryResponse(TransactionStatus.UNKNOWN);
-
-        givenCancelRecoveryBase(prepared, bankStatus, expected);
-
-        PaymentCancelResponse response =
-                cancelCommandService.recoverCancel(MERCHANT_PARTY_ID, TRANSACTION_ID);
-
-        assertThat(response).isSameAs(expected);
-        verify(cancelIdempotencyStore, never()).completeCancel(any(), any());
-    }
-
-    @Test
-    @DisplayName("복구 가능한 CANCEL이 없으면 예외가 발생하고 Bank는 호출되지 않는다")
-    void recoverCancel_failsWhenNoRecoverableCancel() {
-        givenCancelRecoveryPrepareThrows(TransactionErrorCode.CANCEL_NOT_RECOVERABLE);
-
-        assertThatThrownBy(
-                        () -> cancelCommandService.recoverCancel(MERCHANT_PARTY_ID, TRANSACTION_ID))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("code", TransactionErrorCode.CANCEL_NOT_RECOVERABLE);
-
-        // 4. Bank 조회 없음 — 복구 대상 없으면 Bank 호출도 없어야 한다
-        verify(bankClient, never()).getTransactionStatus(any());
-    }
-
-    @Test
-    @DisplayName("세션 가맹점이 원본 결제 수신자가 아니면 복구가 거부된다")
-    void recoverCancel_failsWhenMerchantIsNotReceiver() {
-        givenCancelRecoveryPrepareThrows(TransactionErrorCode.PAYMENT_CANCEL_FORBIDDEN);
-
-        assertThatThrownBy(
-                        () -> cancelCommandService.recoverCancel(MERCHANT_PARTY_ID, TRANSACTION_ID))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("code", TransactionErrorCode.PAYMENT_CANCEL_FORBIDDEN);
-
-        // 4. 소유권 실패 시 이후 흐름 없음
-        verify(bankClient, never()).getTransactionStatus(any());
-    }
-
-    @Test
-    @DisplayName("취소 복구 시 Bank SUCCESS인데 bankTransactionId가 없으면 복구 결과 오류가 발생한다")
-    void recoverCancel_bankSuccessWithNullBankTransactionId_throwsRecoveryResultInvalid() {
-        CancelExecutionPrepared prepared = cancelRecoveryPrepared();
-        BankTransactionStatusResponse bankStatus =
-                new BankTransactionStatusResponse(
-                        CANCEL_UUID,
-                        null, // bankTransactionId 없음
-                        TransactionStatus.SUCCESS,
-                        null,
-                        LocalDateTime.of(2026, 5, 27, 14, 30));
-
-        givenCancelRecoveryThrows(
-                prepared, bankStatus, TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
-
-        assertThatThrownBy(
-                        () -> cancelCommandService.recoverCancel(MERCHANT_PARTY_ID, TRANSACTION_ID))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue(
-                        "code", TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
-    }
-
-    private void givenCancelRecoveryBase(
-            CancelExecutionPrepared prepared,
-            BankTransactionStatusResponse bankStatus,
-            PaymentCancelResponse response) {
-        givenCancelRecoveryLock();
-        given(cancelStateWriter.prepareRecovery(MERCHANT_PARTY_ID, TRANSACTION_ID))
-                .willReturn(prepared);
-        given(bankClient.getTransactionStatus(prepared.cancelTransactionUuid()))
-                .willReturn(bankStatus);
-        given(cancelStateWriter.applyRecoveryResult(prepared.cancelTransactionUuid(), bankStatus))
-                .willReturn(response);
-    }
-
-    private void givenCancelRecoveryThrows(
-            CancelExecutionPrepared prepared,
-            BankTransactionStatusResponse bankStatus,
-            TransactionErrorCode errorCode) {
-        givenCancelRecoveryLock();
-        given(cancelStateWriter.prepareRecovery(MERCHANT_PARTY_ID, TRANSACTION_ID))
-                .willReturn(prepared);
-        given(bankClient.getTransactionStatus(prepared.cancelTransactionUuid()))
-                .willReturn(bankStatus);
-        given(cancelStateWriter.applyRecoveryResult(prepared.cancelTransactionUuid(), bankStatus))
-                .willThrow(new BusinessException(errorCode));
-    }
-
-    private void givenCancelRecoveryPrepareThrows(TransactionErrorCode errorCode) {
-        givenCancelRecoveryLock();
-        given(cancelStateWriter.prepareRecovery(MERCHANT_PARTY_ID, TRANSACTION_ID))
-                .willThrow(new BusinessException(errorCode));
-    }
-
-    private void givenCancelRecoveryLock() {
-        given(transactionRepository.findById(TRANSACTION_ID))
-                .willReturn(Optional.of(paymentTransaction(TransactionStatus.SUCCESS)));
-        given(cancelLockManager.withCancelLock(eq(TRANSACTION_UUID), any()))
-                .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
-    }
-
-    private CancelExecutionPrepared cancelRecoveryPrepared() {
-        return new CancelExecutionPrepared(
-                CANCEL_UUID, TRANSACTION_UUID, "0x-merchant", "0x-user", new BigDecimal("10000"));
-    }
-
-    private BankTransactionStatusResponse cancelRecoveryBankStatus(TransactionStatus status) {
-        return new BankTransactionStatusResponse(
-                CANCEL_UUID,
-                status == TransactionStatus.SUCCESS ? 888L : null,
-                status,
-                status == TransactionStatus.SUCCESS ? "0x-recovered-cancel" : null,
-                LocalDateTime.of(2026, 5, 27, 14, 30));
-    }
-
-    private PaymentCancelResponse cancelRecoveryResponse(TransactionStatus status) {
-        return new PaymentCancelResponse(
-                CANCEL_UUID,
-                status,
-                status == TransactionStatus.SUCCESS ? "APV-2026-00000456" : null,
-                new BigDecimal("10000"),
-                LocalDateTime.of(2026, 5, 27, 14, 30));
-    }
-
     private CancelResponse successBankCancelResponse() {
         return new CancelResponse(
                 CANCEL_UUID,
@@ -526,10 +349,20 @@ class CancelCommandServiceV1Test {
                 new BigDecimal("90000"));
     }
 
-    /** bank 에러 응답(JSON body에 code 포함)을 던지는 RestClientResponseException 생성 */
-    private RestClientResponseException bankError(int status, String statusText, String bankCode) {
-        byte[] body = ("{\"code\":\"" + bankCode + "\"}").getBytes(StandardCharsets.UTF_8);
-        return new RestClientResponseException(statusText, status, statusText, null, body, null);
+    /** bank HTTP 에러 응답(status + code)을 표현하는 BankException (BankClientImpl이 변환한 형태) */
+    private BankException bankException(int status, String bankCode) {
+        return new BankException(
+                BankError.of(HttpStatusCode.valueOf(status), bankCode, "bank error"));
+    }
+
+    /** 응답을 못 받은 타임아웃/IO 실패 */
+    private BankException timeoutException() {
+        return new BankException(BankError.noResponse("timeout"));
+    }
+
+    /** 코드 없는 5xx 서버 오류 */
+    private BankException bankServerException() {
+        return new BankException(BankError.of(HttpStatusCode.valueOf(500), null, "500"));
     }
 
     private Transaction paymentTransaction(TransactionStatus status) {

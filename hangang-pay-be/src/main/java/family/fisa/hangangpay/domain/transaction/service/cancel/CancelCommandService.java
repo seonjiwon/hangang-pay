@@ -9,7 +9,4 @@ public interface CancelCommandService {
     /** 결제 취소 실행 - 분산 락 확보 후 멱등 판단 → 은행 취소 요청 → 상태 전환. */
     PaymentCancelResponse executeCancel(
             Long merchantPartyId, Long transactionId, PaymentCancelRequest request);
-
-    /** UNKNOWN/PROCESSING 취소를 은행 재조회로 복구한다. */
-    PaymentCancelResponse recoverCancel(Long merchantPartyId, Long transactionId);
 }

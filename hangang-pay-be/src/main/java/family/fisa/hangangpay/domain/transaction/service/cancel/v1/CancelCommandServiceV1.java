@@ -1,13 +1,11 @@
 package family.fisa.hangangpay.domain.transaction.service.cancel.v1;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
 import family.fisa.hangangpay.client.bank.dto.response.CancelResponse;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpay.domain.transaction.dto.bank.BankOutcome;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentCancelRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentCancelResponse;
-import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
 import family.fisa.hangangpay.domain.transaction.internal.cancel.*;
 import family.fisa.hangangpay.domain.transaction.repository.TransactionRepository;
 import family.fisa.hangangpay.domain.transaction.service.cancel.CancelCommandService;
@@ -17,11 +15,9 @@ import family.fisa.hangangpay.global.code.error.BaseErrorCode;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientResponseException;
 
 @Service
 @RequiredArgsConstructor
@@ -52,15 +48,6 @@ public class CancelCommandServiceV1 implements CancelCommandService {
                 () ->
                         doExecuteCancel(
                                 merchantPartyId, transactionId, originalTransactionUuid, request));
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public PaymentCancelResponse recoverCancel(Long merchantPartyId, Long transactionId) {
-        String originalTransactionUuid = getTransactionUuid(transactionId);
-
-        return cancelLockManager.withCancelLock(
-                originalTransactionUuid, () -> doRecoverCancel(merchantPartyId, transactionId));
     }
 
     /** 내부 메소드 */
@@ -123,50 +110,6 @@ public class CancelCommandServiceV1 implements CancelCommandService {
         cancelIdempotencyStore.completeCancel(originalTransactionUuid, response);
 
         return response;
-    }
-
-    private PaymentCancelResponse doRecoverCancel(Long merchantPartyId, Long transactionId) {
-        // 1. 정상 조회: SUCCESS/FAILED/PROCESSING을 applyRecoveryResult가 반영한다.
-        CancelExecutionPrepared prepared =
-                cancelStateWriter.prepareRecovery(merchantPartyId, transactionId);
-        String cancelUuid = prepared.cancelTransactionUuid();
-
-        // Bank 조회로 결과 확정 (404 → FAILED)
-        PaymentCancelResponse response = resolveCancelRecovery(cancelUuid);
-
-        // 종단으로 끝났으면 Redis 멱등 record 정리
-        if (response.status() == TransactionStatus.SUCCESS) {
-            cancelIdempotencyStore.completeCancel(prepared.originalTransactionUuid(), response);
-        } else if (response.status() == TransactionStatus.FAILED) {
-            cancelIdempotencyStore.failCancel(prepared.originalTransactionUuid());
-        } else {
-            // 은행이 아직 처리 중 → 시도 횟수만 올림
-            cancelStateWriter.incrementRecoveryAttempt(cancelUuid);
-        }
-
-        return response;
-    }
-
-    /**
-     * bankClient 호출 전 종료된 요청들은 PROCESSING 레코드가 저장되고 고아상태에 빠진다. 이런 경우는 은행쪽에 조회 응답이 404 - NOT FOUND로
-     * 반환 된다.
-     */
-    private PaymentCancelResponse resolveCancelRecovery(String cancelUuid) {
-        try {
-            // 1. 정상 조회: SUCCESS/FAILED/PROCESSING을 applyRecoveryResult가 반영한다.
-            BankTransactionStatusResponse bankStatus = bankClient.getTransactionStatus(cancelUuid);
-            return cancelStateWriter.applyRecoveryResult(cancelUuid, bankStatus);
-        } catch (RestClientResponseException e) {
-            // 2. 404가 아니면 (5xx 등) 일시적 오류 같은 경우 다시 던져서 다음 sweep에 재시도한다.
-            if (!e.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
-                throw e;
-            }
-            // 3. 404는 은행 DB 원장에 기록자체가 없다. -> 은행 도달전 사망했다는 의미로 FAILED 확정 (플랫폼의 책임)
-            // applyRecoveryResult의 FAILED 처리를 그대로 재사용하기 위해 FAILED status 합성
-            BankTransactionStatusResponse asFailed =
-                    BankTransactionStatusResponse.failed(cancelUuid);
-            return cancelStateWriter.applyRecoveryResult(cancelUuid, asFailed);
-        }
     }
 
     private String getTransactionUuid(Long transactionId) {

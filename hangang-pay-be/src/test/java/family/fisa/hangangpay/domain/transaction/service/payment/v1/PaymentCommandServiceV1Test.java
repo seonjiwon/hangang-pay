@@ -6,14 +6,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.response.BankTransactionStatusResponse;
+import family.fisa.hangangpay.client.bank.BankErrorInterpreter;
 import family.fisa.hangangpay.client.bank.dto.response.PaymentResponse;
+import family.fisa.hangangpay.client.bank.exception.BankError;
+import family.fisa.hangangpay.client.bank.exception.BankException;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.party.entity.Party;
@@ -35,7 +36,6 @@ import family.fisa.hangangpay.domain.wallet.entity.Wallet;
 import family.fisa.hangangpay.domain.wallet.repository.WalletRepository;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,12 +45,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClientResponseException;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentCommandServiceV1Test {
@@ -94,7 +92,7 @@ class PaymentCommandServiceV1Test {
                         paymentRateLimiter,
                         paymentRequestHashGenerator,
                         paymentStateWriter,
-                        new BankCallExecutorV1());
+                        new BankCallExecutorV1(new BankErrorInterpreter()));
     }
 
     @Test
@@ -366,8 +364,7 @@ class PaymentCommandServiceV1Test {
                                 USER_ID, USER_PARTY_ID, TRANSACTION_UUID, "123456"))
                 .willReturn(PaymentExecutionPreparationResult.prepared(prepared));
 
-        given(bankClient.payment(prepared.toBankPaymentRequest()))
-                .willThrow(new ResourceAccessException("timeout"));
+        given(bankClient.payment(prepared.toBankPaymentRequest())).willThrow(timeoutException());
 
         given(paymentStateWriter.markUnknown(TRANSACTION_UUID)).willReturn(unknownResponse);
 
@@ -416,7 +413,7 @@ class PaymentCommandServiceV1Test {
                                 USER_ID, USER_PARTY_ID, TRANSACTION_UUID, "123456"))
                 .willReturn(PaymentExecutionPreparationResult.prepared(prepared));
         given(bankClient.payment(prepared.toBankPaymentRequest()))
-                .willThrow(bankError(422, "Unprocessable Entity", "TRANSACTION_ALREADY_FAILED"));
+                .willThrow(bankException(422, "TRANSACTION_ALREADY_FAILED"));
         given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
                 .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
 
@@ -463,7 +460,7 @@ class PaymentCommandServiceV1Test {
                 .willReturn(PaymentExecutionPreparationResult.prepared(prepared));
         // 1차 timeout → 2차 성공
         given(bankClient.payment(prepared.toBankPaymentRequest()))
-                .willThrow(new ResourceAccessException("timeout"))
+                .willThrow(timeoutException())
                 .willReturn(bankResponse);
         given(
                         paymentStateWriter.completeSuccess(
@@ -510,7 +507,7 @@ class PaymentCommandServiceV1Test {
                                 USER_ID, USER_PARTY_ID, TRANSACTION_UUID, "123456"))
                 .willReturn(PaymentExecutionPreparationResult.prepared(prepared));
         given(bankClient.payment(prepared.toBankPaymentRequest()))
-                .willThrow(bankError(409, "Conflict", "TRANSACTION_DUPLICATE_PROCESSING"));
+                .willThrow(bankException(409, "TRANSACTION_DUPLICATE_PROCESSING"));
         given(paymentStateWriter.markUnknown(TRANSACTION_UUID)).willReturn(unknownResponse);
         given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
                 .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
@@ -527,148 +524,6 @@ class PaymentCommandServiceV1Test {
         verify(bankClient, times(2)).payment(prepared.toBankPaymentRequest());
         verify(paymentStateWriter).markUnknown(TRANSACTION_UUID);
         verify(paymentStateWriter, never()).completeFailed(any());
-    }
-
-    @Test
-    @DisplayName("UNKNOWN 복구 시 Bank SUCCESS 결과로 상태를 SUCCESS로 갱신한다")
-    void recoverPayment_updatesStatusFromBankSuccess() {
-        BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.SUCCESS);
-        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.SUCCESS);
-
-        givenPaymentRecoveryBase(bankStatus, expected);
-
-        PaymentExecuteResponse response =
-                paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
-
-        assertThat(response).isSameAs(expected);
-
-        InOrder inOrder = inOrder(paymentStateWriter, bankClient);
-        inOrder.verify(paymentStateWriter).prepareRecovery(USER_PARTY_ID, TRANSACTION_UUID);
-        inOrder.verify(bankClient).getTransactionStatus(TRANSACTION_UUID);
-        inOrder.verify(paymentStateWriter).applyRecoveryResult(TRANSACTION_UUID, bankStatus);
-    }
-
-    @Test
-    @DisplayName("UNKNOWN 복구 시 Bank FAILED 결과로 상태를 FAILED로 갱신한다")
-    void recoverPayment_updatesStatusFromBankFailed() {
-        BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.FAILED);
-        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.FAILED);
-
-        givenPaymentRecoveryBase(bankStatus, expected);
-
-        PaymentExecuteResponse response =
-                paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
-
-        assertThat(response).isSameAs(expected);
-        verify(paymentStateWriter).applyRecoveryResult(TRANSACTION_UUID, bankStatus);
-    }
-
-    @Test
-    @DisplayName("Bank가 아직 PROCESSING이면 복구 가능한 상태로 남긴다")
-    void recoverPayment_keepsRecoverableWhenBankStillProcessing() {
-        BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.PROCESSING);
-        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.UNKNOWN);
-
-        givenPaymentRecoveryBase(bankStatus, expected);
-
-        PaymentExecuteResponse response =
-                paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
-
-        assertThat(response).isSameAs(expected);
-        verify(paymentStateWriter).applyRecoveryResult(TRANSACTION_UUID, bankStatus);
-    }
-
-    @Test
-    @DisplayName("Bank SUCCESS 조회 결과에 txHash가 없으면 복구 결과 오류가 발생한다")
-    void recoverPayment_bankSuccessWithoutTxHashThrowsInvalidRecoveryResult() {
-        BankTransactionStatusResponse bankStatus =
-                new BankTransactionStatusResponse(
-                        TRANSACTION_UUID,
-                        101L,
-                        TransactionStatus.SUCCESS,
-                        null,
-                        LocalDateTime.of(2026, 5, 25, 10, 5));
-        givenPaymentRecoveryThrows(
-                bankStatus, TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
-
-        assertThatThrownBy(
-                        () -> paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue(
-                        "code", TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
-    }
-
-    @Test
-    @DisplayName("Bank SUCCESS 조회 결과에 bankTransactionId가 없으면 복구 결과 오류가 발생한다")
-    void recoverPayment_bankSuccessWithoutBankTransactionIdThrowsInvalidRecoveryResult() {
-        BankTransactionStatusResponse bankStatus =
-                new BankTransactionStatusResponse(
-                        TRANSACTION_UUID,
-                        null,
-                        TransactionStatus.SUCCESS,
-                        "0x-recovered",
-                        LocalDateTime.of(2026, 5, 25, 10, 5));
-        givenPaymentRecoveryThrows(
-                bankStatus, TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
-
-        assertThatThrownBy(
-                        () -> paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue(
-                        "code", TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
-    }
-
-    @Test
-    @DisplayName("SUCCESS 같은 최종 상태는 복구 대상이 아니다")
-    void recoverPayment_rejectsNonRecoverableStatus() {
-        givenPaymentRecoveryPrepareThrows(TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);
-
-        assertThatThrownBy(
-                        () -> paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("code", TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);
-
-        verify(bankClient, never()).getTransactionStatus(any());
-    }
-
-    @Test
-    @DisplayName("로컬 PENDING 결제는 아직 Bank 실행 전이므로 복구 대상이 아니다")
-    void recoverPayment_rejectsPendingStatus() {
-        givenPaymentRecoveryPrepareThrows(TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);
-
-        assertThatThrownBy(
-                        () -> paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("code", TransactionErrorCode.PAYMENT_NOT_RECOVERABLE);
-
-        verify(bankClient, never()).getTransactionStatus(any());
-    }
-
-    @Test
-    @DisplayName("복구도 transactionUuid Redis lock 안에서 실행한다")
-    void recoverPayment_usesTransactionLock() {
-        BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.SUCCESS);
-        PaymentExecuteResponse expected = paymentRecoveryResponse(TransactionStatus.SUCCESS);
-        givenPaymentRecoveryBase(bankStatus, expected);
-
-        paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
-
-        verify(paymentLockManager).withTransactionLock(eq(TRANSACTION_UUID), any());
-    }
-
-    @Test
-    @DisplayName("복구해도 은행이 아직 PROCESSING이면 시도 횟수만 올린다(cap 진행)")
-    void recoverPayment_stillProcessing_incrementsAttempt() {
-        BankTransactionStatusResponse bankStatus = recoveryBankStatus(TransactionStatus.PROCESSING);
-        PaymentExecuteResponse stillProcessing =
-                paymentRecoveryResponse(TransactionStatus.PROCESSING);
-        givenPaymentRecoveryBase(bankStatus, stillProcessing);
-
-        paymentCommandService.recoverPayment(USER_PARTY_ID, TRANSACTION_UUID);
-
-        verify(paymentStateWriter).incrementRecoveryAttempt(TRANSACTION_UUID);
-        verify(paymentIdempotencyStore, never()).completeExecution(anyString(), any());
-        verify(paymentIdempotencyStore, never()).failExecution(anyString());
     }
 
     @Test
@@ -697,10 +552,7 @@ class PaymentCommandServiceV1Test {
                                 USER_ID, USER_PARTY_ID, TRANSACTION_UUID, "123456"))
                 .willReturn(PaymentExecutionPreparationResult.prepared(prepared));
         // 2. Bank 5xx
-        given(bankClient.payment(prepared.toBankPaymentRequest()))
-                .willThrow(
-                        new RestClientResponseException(
-                                "500", 500, "Internal Server Error", null, null, null));
+        given(bankClient.payment(prepared.toBankPaymentRequest())).willThrow(bankServerException());
         given(paymentStateWriter.markUnknown(TRANSACTION_UUID)).willReturn(unknownResponse);
         given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
                 .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
@@ -722,62 +574,20 @@ class PaymentCommandServiceV1Test {
         verify(paymentStateWriter, never()).completeSuccess(any(), any(), any(), any());
     }
 
-    private void givenPaymentRecoveryBase(
-            BankTransactionStatusResponse bankStatus, PaymentExecuteResponse response) {
-        given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
-                .willAnswer(
-                        invocation -> {
-                            Supplier<?> supplier = invocation.getArgument(1);
-                            return supplier.get();
-                        });
-        given(paymentStateWriter.prepareRecovery(USER_PARTY_ID, TRANSACTION_UUID))
-                .willReturn(TRANSACTION_UUID);
-        given(bankClient.getTransactionStatus(TRANSACTION_UUID)).willReturn(bankStatus);
-        given(paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus))
-                .willReturn(response);
+    /** bank HTTP 에러 응답(status + code)을 표현하는 BankException (BankClientImpl이 변환한 형태) */
+    private BankException bankException(int status, String bankCode) {
+        return new BankException(
+                BankError.of(HttpStatusCode.valueOf(status), bankCode, "bank error"));
     }
 
-    private void givenPaymentRecoveryThrows(
-            BankTransactionStatusResponse bankStatus, TransactionErrorCode errorCode) {
-        given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
-                .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
-        given(paymentStateWriter.prepareRecovery(USER_PARTY_ID, TRANSACTION_UUID))
-                .willReturn(TRANSACTION_UUID);
-        given(bankClient.getTransactionStatus(TRANSACTION_UUID)).willReturn(bankStatus);
-        given(paymentStateWriter.applyRecoveryResult(TRANSACTION_UUID, bankStatus))
-                .willThrow(new BusinessException(errorCode));
+    /** 응답을 못 받은 타임아웃/IO 실패 */
+    private BankException timeoutException() {
+        return new BankException(BankError.noResponse("timeout"));
     }
 
-    private void givenPaymentRecoveryPrepareThrows(TransactionErrorCode errorCode) {
-        given(paymentLockManager.withTransactionLock(eq(TRANSACTION_UUID), any()))
-                .willAnswer(inv -> ((Supplier<?>) inv.getArgument(1)).get());
-        given(paymentStateWriter.prepareRecovery(USER_PARTY_ID, TRANSACTION_UUID))
-                .willThrow(new BusinessException(errorCode));
-    }
-
-    private BankTransactionStatusResponse recoveryBankStatus(TransactionStatus status) {
-        return new BankTransactionStatusResponse(
-                TRANSACTION_UUID,
-                status == TransactionStatus.SUCCESS ? 101L : null,
-                status,
-                status == TransactionStatus.SUCCESS ? "0x-recovered" : null,
-                LocalDateTime.of(2026, 5, 25, 10, 5));
-    }
-
-    private PaymentExecuteResponse paymentRecoveryResponse(TransactionStatus status) {
-        return new PaymentExecuteResponse(
-                TRANSACTION_UUID,
-                status,
-                "APV-2026-00000123",
-                new BigDecimal("10000"),
-                "성수 한강카페",
-                LocalDateTime.of(2026, 5, 25, 10, 5));
-    }
-
-    /** bank 에러 응답(JSON body에 code 포함)을 던지는 RestClientResponseException 생성 */
-    private RestClientResponseException bankError(int status, String statusText, String bankCode) {
-        byte[] body = ("{\"code\":\"" + bankCode + "\"}").getBytes(StandardCharsets.UTF_8);
-        return new RestClientResponseException(statusText, status, statusText, null, body, null);
+    /** 코드 없는 5xx 서버 오류 */
+    private BankException bankServerException() {
+        return new BankException(BankError.of(HttpStatusCode.valueOf(500), null, "500"));
     }
 
     private PaymentResponse successBankPaymentResponse() {

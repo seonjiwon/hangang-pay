@@ -14,7 +14,4 @@ public interface PaymentCommandService {
     /** 결제 실행 - 분산 락 확보 후 멱등 판단 → 은행 결제 요청 → 상태 전환. */
     PaymentExecuteResponse executePayment(
             Long userId, Long partyId, String transactionUuid, PaymentExecuteRequest request);
-
-    /** UNKNOWN/PROCESSING 결제를 은행 재조회로 복구한다. */
-    PaymentExecuteResponse recoverPayment(Long partyId, String transactionUuid);
 }

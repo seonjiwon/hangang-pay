@@ -8,18 +8,17 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankActResult;
 import family.fisa.hangangpay.client.bank.dto.request.ExchangeRequest;
 import family.fisa.hangangpay.client.bank.dto.response.ExchangeResponse;
 import family.fisa.hangangpay.domain.account.entity.AccountType;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
+import family.fisa.hangangpay.domain.transaction.dto.bank.BankOutcome;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ExchangeExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ExchangeIntentCreateRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ExchangeExecuteResponse;
@@ -31,6 +30,7 @@ import family.fisa.hangangpay.domain.transaction.internal.exchange.ExchangeIdemp
 import family.fisa.hangangpay.domain.transaction.internal.exchange.ExchangeRequestHashGenerator;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeQueryService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeStateWriter;
+import family.fisa.hangangpay.domain.transaction.service.support.BankCallExecutor;
 import family.fisa.hangangpay.domain.user.code.UserErrorCode;
 import family.fisa.hangangpay.domain.user.entity.User;
 import family.fisa.hangangpay.domain.user.repository.UserRepository;
@@ -53,6 +53,7 @@ class ExchangeCommandServiceV1Test {
     @Mock ExchangeQueryService exchangeQueryService;
     @Mock ExchangeStateWriter stateWriter;
     @Mock BankClient bankClient;
+    @Mock BankCallExecutor bankCallExecutor;
     @Mock UserRepository userRepository;
     @Mock MerchantRepository merchantRepository;
     @Mock PasswordEncoder passwordEncoder;
@@ -107,6 +108,12 @@ class ExchangeCommandServiceV1Test {
 
     private ExchangeResponse bankResponse() {
         return new ExchangeResponse(UUID, BANK_TX_ID, "SUCCESS", new BigDecimal("50000"));
+    }
+
+    /** executor가 특정 BankOutcome을 반환하도록 스텁 (실제 bank 호출/재시도는 executor 단위테스트가 담당) */
+    private void stubBankOutcome(BankOutcome<ExchangeResponse> outcome) {
+        when(bankCallExecutor.<ExchangeResponse>callBankWithRetry(any(), any(), any()))
+                .thenReturn(outcome);
     }
 
     private void stubUserPinPass() {
@@ -202,7 +209,7 @@ class ExchangeCommandServiceV1Test {
 
             assertThat(out).isSameAs(snapshot);
             verify(stateWriter, never()).claimForExecution(any());
-            verify(bankClient, never()).exchange(any());
+            verify(bankCallExecutor, never()).callBankWithRetry(any(), any(), any());
         }
 
         @Test
@@ -248,9 +255,8 @@ class ExchangeCommandServiceV1Test {
             stubUserPinPass();
             stubGate(ExchangeIdempotencyDecision.newRequest());
             when(stateWriter.claimForExecution(UUID)).thenReturn(TransactionStatus.PROCESSING);
-            ExchangeRequest req = bankRequest();
-            when(stateWriter.getBankRequest(UUID)).thenReturn(req);
-            when(bankClient.exchange(req)).thenReturn(BankActResult.success(bankResponse()));
+            when(stateWriter.getBankRequest(UUID)).thenReturn(bankRequest());
+            stubBankOutcome(BankOutcome.success(bankResponse()));
             ExchangeExecuteResponse resp = response(TransactionStatus.SUCCESS);
             when(stateWriter.markSuccess(UUID, null, BANK_TX_ID_STR)).thenReturn(resp);
 
@@ -263,14 +269,13 @@ class ExchangeCommandServiceV1Test {
         }
 
         @Test
-        @DisplayName("bank FAILURE -> markFailed + failExecution")
+        @DisplayName("bank TERMINAL_FAILED -> markFailed + failExecution")
         void 실패() {
             stubUserPinPass();
             stubGate(ExchangeIdempotencyDecision.newRequest());
             when(stateWriter.claimForExecution(UUID)).thenReturn(TransactionStatus.PROCESSING);
-            ExchangeRequest req = bankRequest();
-            when(stateWriter.getBankRequest(UUID)).thenReturn(req);
-            when(bankClient.exchange(req)).thenReturn(BankActResult.failure());
+            when(stateWriter.getBankRequest(UUID)).thenReturn(bankRequest());
+            stubBankOutcome(BankOutcome.failed(TransactionErrorCode.EXCHANGE_CONTRACT_FAILED));
             ExchangeExecuteResponse resp = response(TransactionStatus.FAILED);
             when(stateWriter.markFailed(UUID)).thenReturn(resp);
 
@@ -282,36 +287,13 @@ class ExchangeCommandServiceV1Test {
         }
 
         @Test
-        @DisplayName("bank UNKNOWN -> 재시도 SUCCESS")
-        void 불확실_재시도_성공() {
+        @DisplayName("bank UNKNOWN -> markUnknown, Redis 동기화 안 함")
+        void 불확실() {
             stubUserPinPass();
             stubGate(ExchangeIdempotencyDecision.newRequest());
             when(stateWriter.claimForExecution(UUID)).thenReturn(TransactionStatus.PROCESSING);
-            ExchangeRequest req = bankRequest();
-            when(stateWriter.getBankRequest(UUID)).thenReturn(req);
-            when(bankClient.exchange(req))
-                    .thenReturn(BankActResult.unknown())
-                    .thenReturn(BankActResult.success(bankResponse()));
-            ExchangeExecuteResponse resp = response(TransactionStatus.SUCCESS);
-            when(stateWriter.markSuccess(UUID, null, BANK_TX_ID_STR)).thenReturn(resp);
-
-            ExchangeExecuteResponse out =
-                    exchangeCommandService.executeUserExchange(PARTY_ID, UUID, executeRequest());
-
-            assertThat(out).isSameAs(resp);
-            verify(bankClient, times(2)).exchange(req);
-            verify(idempotencyStore).completeExecution(UUID, resp);
-        }
-
-        @Test
-        @DisplayName("bank UNKNOWN 2회 -> markUnknown, Redis 동기화 안 함")
-        void 불확실_둘다() {
-            stubUserPinPass();
-            stubGate(ExchangeIdempotencyDecision.newRequest());
-            when(stateWriter.claimForExecution(UUID)).thenReturn(TransactionStatus.PROCESSING);
-            ExchangeRequest req = bankRequest();
-            when(stateWriter.getBankRequest(UUID)).thenReturn(req);
-            when(bankClient.exchange(req)).thenReturn(BankActResult.unknown());
+            when(stateWriter.getBankRequest(UUID)).thenReturn(bankRequest());
+            stubBankOutcome(BankOutcome.unknown());
             ExchangeExecuteResponse resp = response(TransactionStatus.UNKNOWN);
             when(stateWriter.markUnknown(UUID)).thenReturn(resp);
 
@@ -319,7 +301,6 @@ class ExchangeCommandServiceV1Test {
                     exchangeCommandService.executeUserExchange(PARTY_ID, UUID, executeRequest());
 
             assertThat(out).isSameAs(resp);
-            verify(bankClient, times(2)).exchange(req);
             verify(idempotencyStore, never()).completeExecution(any(), any());
             verify(idempotencyStore, never()).failExecution(any());
         }
@@ -337,7 +318,7 @@ class ExchangeCommandServiceV1Test {
                     exchangeCommandService.executeUserExchange(PARTY_ID, UUID, executeRequest());
 
             assertThat(out).isSameAs(resp);
-            verify(bankClient, never()).exchange(any());
+            verify(bankCallExecutor, never()).callBankWithRetry(any(), any(), any());
             verify(idempotencyStore).completeExecution(UUID, resp);
         }
 
@@ -347,9 +328,8 @@ class ExchangeCommandServiceV1Test {
             stubMerchantPinPass();
             stubGate(ExchangeIdempotencyDecision.newRequest());
             when(stateWriter.claimForExecution(UUID)).thenReturn(TransactionStatus.PROCESSING);
-            ExchangeRequest req = bankRequest();
-            when(stateWriter.getBankRequest(UUID)).thenReturn(req);
-            when(bankClient.exchange(req)).thenReturn(BankActResult.success(bankResponse()));
+            when(stateWriter.getBankRequest(UUID)).thenReturn(bankRequest());
+            stubBankOutcome(BankOutcome.success(bankResponse()));
             ExchangeExecuteResponse resp = response(TransactionStatus.SUCCESS);
             when(stateWriter.markSuccess(UUID, null, BANK_TX_ID_STR)).thenReturn(resp);
 

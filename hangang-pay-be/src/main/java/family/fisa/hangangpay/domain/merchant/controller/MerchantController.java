@@ -22,6 +22,7 @@ import family.fisa.hangangpay.domain.transaction.dto.user.response.MerchantPayme
 import family.fisa.hangangpay.domain.transaction.dto.user.response.MerchantPaymentHistoryItem;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentCancelResponse;
 import family.fisa.hangangpay.domain.transaction.service.cancel.CancelCommandService;
+import family.fisa.hangangpay.domain.transaction.service.cancel.CancelReconcileService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeCommandService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeQueryService;
 import family.fisa.hangangpay.domain.transaction.service.payment.PaymentQueryService;
@@ -58,6 +59,7 @@ public class MerchantController {
     private final ExchangeQueryService exchangeQueryService;
     private final ExchangeCommandService exchangeCommandService;
     private final CancelCommandService cancelCommandService;
+    private final CancelReconcileService cancelReconcileService;
 
     /** QR에서 추출한 merchantId로 결제 진입에 필요한 가맹점 정보를 조회한다. */
     @Operation(
@@ -210,10 +212,11 @@ public class MerchantController {
             summary = "결제 취소 복구 (MERCHANT-004-R)",
             description = "UNKNOWN 상태의 취소 건을 Bank 상태 조회로 복구한다.")
     @PostMapping("/payments/{transactionId}/cancel/recover")
-    public ResponseEntity<ApiResponse<PaymentCancelResponse>> recoverCancel(
+    public ResponseEntity<ApiResponse<PaymentCancelResponse>> reconcileCancel(
             @SessionAttribute(SessionAttributeNames.PARTY_ID) Long partyId,
             @PathVariable Long transactionId) {
-        PaymentCancelResponse response = cancelCommandService.recoverCancel(partyId, transactionId);
+        PaymentCancelResponse response =
+                cancelReconcileService.reconcileCancel(partyId, transactionId);
         return ResponseEntity.ok(
                 ApiResponse.onSuccess(TransactionSuccessCode.CANCEL_RECOVERED, response));
     }

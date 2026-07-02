@@ -30,6 +30,11 @@ public enum TransactionErrorCode implements BaseErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "CHARGE_IDEMPOTENCY_RECORD_INVALID",
             "충전 멱등성 기록이 올바르지 않습니다."),
+    CHARGE_FAILED(HttpStatus.BAD_GATEWAY, "CHARGE_FAILED", "충전 처리에 실패했습니다."),
+    CHARGE_INSUFFICIENT_BALANCE(
+            HttpStatus.BAD_REQUEST, "CHARGE_INSUFFICIENT_BALANCE", "출금 계좌 잔액이 부족합니다."),
+    CHARGE_ALREADY_FAILED(
+            HttpStatus.UNPROCESSABLE_ENTITY, "CHARGE_ALREADY_FAILED", "이미 실패한 충전입니다."),
 
     // ===== 환전 (EXCHANGE) =====
     EXCHANGE_NOT_FOUND(HttpStatus.NOT_FOUND, "EXCHANGE_NOT_FOUND", "환전 내역을 찾을 수 없습니다."),

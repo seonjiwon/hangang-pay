@@ -1,13 +1,17 @@
 package family.fisa.hangangpay.domain.transaction.service.charge.v1;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import family.fisa.hangangpay.client.bank.BankClient;
 import family.fisa.hangangpay.client.bank.dto.response.ChargeResponse;
+import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
+import family.fisa.hangangpay.domain.transaction.dto.bank.BankOutcome;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeIntentCreateRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ChargeExecuteResponse;
@@ -18,6 +22,8 @@ import family.fisa.hangangpay.domain.transaction.internal.charge.ChargeExecution
 import family.fisa.hangangpay.domain.transaction.internal.charge.ChargeExecutionPrepared;
 import family.fisa.hangangpay.domain.transaction.internal.charge.ChargeIdempotencyStore;
 import family.fisa.hangangpay.domain.transaction.service.charge.ChargeStateWriter;
+import family.fisa.hangangpay.domain.transaction.service.support.BankCallExecutor;
+import family.fisa.hangangpay.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
@@ -26,12 +32,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.client.ResourceAccessException;
 
 @ExtendWith(MockitoExtension.class)
 class ChargeCommandServiceV1Test {
 
     @Mock BankClient bankClient;
+    @Mock BankCallExecutor bankCallExecutor;
     @Mock ChargeIdempotencyStore chargeIdempotencyStore;
     @Mock ChargeStateWriter chargeStateWriter;
     @Mock IntentCreationGuard intentCreationGuard;
@@ -60,6 +66,12 @@ class ChargeCommandServiceV1Test {
                 new BigDecimal("45000"),
                 new BigDecimal("45000"),
                 LocalDateTime.now());
+    }
+
+    /** executor가 특정 BankOutcome을 반환하도록 스텁 (실제 bank 호출/재시도는 executor 단위테스트가 담당) */
+    private void stubBankOutcome(BankOutcome<ChargeResponse> outcome) {
+        when(bankCallExecutor.<ChargeResponse>callBankWithRetry(any(), any(), any()))
+                .thenReturn(outcome);
     }
 
     @Test
@@ -91,7 +103,7 @@ class ChargeCommandServiceV1Test {
         ChargeResponse bankResponse =
                 new ChargeResponse(
                         UUID, 999L, "0xhash", 1L, LocalDateTime.now(), new BigDecimal("45000"));
-        when(bankClient.charge(any())).thenReturn(bankResponse);
+        stubBankOutcome(BankOutcome.success(bankResponse));
         ChargeExecuteResponse expected = response();
         when(chargeStateWriter.completeSuccess(
                         eq(UUID), eq("0xhash"), eq("999"), any(), eq(new BigDecimal("45000"))))
@@ -115,15 +127,15 @@ class ChargeCommandServiceV1Test {
                 service.execute(PARTY_ID, UUID, new ChargeExecuteRequest("1234"));
 
         assertThat(result).isEqualTo(snapshot);
-        verify(bankClient, org.mockito.Mockito.never()).charge(any());
+        verify(bankCallExecutor, never()).callBankWithRetry(any(), any(), any());
     }
 
     @Test
-    @DisplayName("execute 은행 네트워크 오류 -> markUnknown + 멱등 상태 UNKNOWN")
-    void execute_네트워크오류() {
+    @DisplayName("execute 은행 불확실(UNKNOWN) -> markUnknown + 멱등 상태 UNKNOWN")
+    void execute_불확실() {
         when(chargeStateWriter.prepareProcessing(PARTY_ID, UUID, "1234"))
                 .thenReturn(ChargeExecutionPreparationResult.prepared(prepared()));
-        when(bankClient.charge(any())).thenThrow(new ResourceAccessException("timeout"));
+        stubBankOutcome(BankOutcome.unknown());
         ChargeExecuteResponse unknown = response();
         when(chargeStateWriter.markUnknown(UUID)).thenReturn(unknown);
 
@@ -132,5 +144,21 @@ class ChargeCommandServiceV1Test {
 
         assertThat(result).isEqualTo(unknown);
         verify(chargeIdempotencyStore).markExecutionStatus(UUID, TransactionStatus.UNKNOWN);
+    }
+
+    @Test
+    @DisplayName("execute 은행 종단 실패(TERMINAL_FAILED) -> markFailed + 멱등 FAILED + BusinessException")
+    void execute_종단실패() {
+        when(chargeStateWriter.prepareProcessing(PARTY_ID, UUID, "1234"))
+                .thenReturn(ChargeExecutionPreparationResult.prepared(prepared()));
+        stubBankOutcome(BankOutcome.failed(TransactionErrorCode.CHARGE_FAILED));
+
+        assertThatThrownBy(() -> service.execute(PARTY_ID, UUID, new ChargeExecuteRequest("1234")))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code")
+                .isEqualTo(TransactionErrorCode.CHARGE_FAILED);
+
+        verify(chargeStateWriter).markFailed(UUID);
+        verify(chargeIdempotencyStore).markExecutionStatus(UUID, TransactionStatus.FAILED);
     }
 }

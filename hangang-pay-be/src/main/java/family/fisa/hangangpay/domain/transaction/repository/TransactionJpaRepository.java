@@ -82,11 +82,6 @@ public interface TransactionJpaRepository extends JpaRepository<Transaction, Lon
     Optional<Transaction> findByIdAndTransactionTypeIn(
             @Param("id") Long id, @Param("types") List<TransactionType> types);
 
-    /** 스케줄러용 - UNKNOWN 상태 PAYMENT 목록 조회 (fromParty fetch join) */
-    @EntityGraph(attributePaths = {"fromParty"})
-    List<Transaction> findByStatusAndTransactionType(
-            TransactionStatus status, TransactionType type);
-
     /** 파티 식별자 기준 특정 월의 거래 유형별 누적 금액 조회 */
     @Query(
             "SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
@@ -169,33 +164,17 @@ public interface TransactionJpaRepository extends JpaRepository<Transaction, Lon
             @Param("startInclusive") LocalDateTime startInclusive,
             @Param("endExclusive") LocalDateTime endExclusive);
 
-    /** 복구 대상 - 특정 상태 + 타입 + updatedAt 이전 + 시도 한도 미만 */
-    @EntityGraph(attributePaths = {"fromParty"})
-    List<Transaction>
-            findByStatusAndTransactionTypeAndUpdatedAtBeforeAndReconcileAttemptCountLessThan(
-                    TransactionStatus status,
-                    TransactionType type,
-                    LocalDateTime threshold,
-                    int maxAttempts);
-
-    /** 포기(alert) 대상 - updatedAt 이전 + 시도 횟수 정확히 일치(원샷 알림용) */
-    @EntityGraph(attributePaths = {"fromParty"})
-    List<Transaction> findByStatusAndTransactionTypeAndUpdatedAtBeforeAndReconcileAttemptCount(
-            TransactionStatus status,
-            TransactionType type,
-            LocalDateTime threshold,
-            int attemptCount);
-
+    /** reconcile 대상(공통) - UNKNOWN(즉시) + PROCESSING(threshold 이전), 시도 한도 미만 */
     @Query(
             "SELECT t FROM Transaction t "
                     + "WHERE t.transactionType = :type "
-                    + "AND t.reconcileAttemptCount < :maxRetry "
+                    + "AND t.reconcileAttemptCount < :maxAttempts "
                     + "AND (t.status = family.fisa.hangangpay.domain.transaction.entity.TransactionStatus.UNKNOWN "
                     + "  OR (t.status = family.fisa.hangangpay.domain.transaction.entity.TransactionStatus.PROCESSING "
                     + "      AND t.updatedAt < :threshold))")
-    List<Transaction> findExchangeReconcileTargets(
+    List<Transaction> findReconcileTargets(
             @Param("type") TransactionType type,
-            @Param("maxRetry") int maxRetry,
+            @Param("maxAttempts") int maxAttempts,
             @Param("threshold") LocalDateTime threshold);
 
     @Query(
@@ -220,14 +199,14 @@ public interface TransactionJpaRepository extends JpaRepository<Transaction, Lon
             @Param("now") LocalDateTime now,
             @Param("threshold") LocalDateTime threshold);
 
-    /** 환전 reconcile 포기 대상 - PROCESSING/UNKNOWN + 시도 한도 소진 */
+    /** reconcile 포기 대상(공통) - PROCESSING/UNKNOWN + 시도 한도 소진(>=) */
     @Query(
             "SELECT t FROM Transaction t "
                     + "WHERE t.transactionType = :type "
                     + "AND t.status IN :statuses "
-                    + "AND t.reconcileAttemptCount >= :maxRetry")
-    List<Transaction> findExchangeAbandonedTargets(
+                    + "AND t.reconcileAttemptCount >= :maxAttempts")
+    List<Transaction> findAbandonedTargets(
             @Param("type") TransactionType type,
             @Param("statuses") List<TransactionStatus> statuses,
-            @Param("maxRetry") int maxRetry);
+            @Param("maxAttempts") int maxAttempts);
 }

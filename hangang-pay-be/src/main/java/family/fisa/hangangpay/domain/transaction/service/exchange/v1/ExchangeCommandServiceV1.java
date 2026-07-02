@@ -1,7 +1,6 @@
 package family.fisa.hangangpay.domain.transaction.service.exchange.v1;
 
 import family.fisa.hangangpay.client.bank.BankClient;
-import family.fisa.hangangpay.client.bank.dto.BankActResult;
 import family.fisa.hangangpay.client.bank.dto.request.ExchangeRequest;
 import family.fisa.hangangpay.client.bank.dto.response.ExchangeResponse;
 import family.fisa.hangangpay.domain.account.entity.AccountType;
@@ -9,6 +8,7 @@ import family.fisa.hangangpay.domain.merchant.code.MerchantErrorCode;
 import family.fisa.hangangpay.domain.merchant.entity.Merchant;
 import family.fisa.hangangpay.domain.merchant.repository.MerchantRepository;
 import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
+import family.fisa.hangangpay.domain.transaction.dto.bank.BankOutcome;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ExchangeExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ExchangeIntentCreateRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ExchangeExecuteResponse;
@@ -22,11 +22,14 @@ import family.fisa.hangangpay.domain.transaction.internal.exchange.ExchangeReque
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeCommandService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeQueryService;
 import family.fisa.hangangpay.domain.transaction.service.exchange.ExchangeStateWriter;
+import family.fisa.hangangpay.domain.transaction.service.support.BankCallExecutor;
 import family.fisa.hangangpay.domain.user.code.UserErrorCode;
 import family.fisa.hangangpay.domain.user.entity.User;
 import family.fisa.hangangpay.domain.user.repository.UserRepository;
+import family.fisa.hangangpay.global.code.error.BaseErrorCode;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,9 +45,13 @@ public class ExchangeCommandServiceV1 implements ExchangeCommandService {
     /** intent TTL(분). 만료 스케줄러 기준. */
     private static final long INTENT_TTL_MINUTES = 10L;
 
+    /** 환전 종단 실패로 매핑할 bank 오류 코드. 현재는 fallback(EXCHANGE_CONTRACT_FAILED)만 사용. */
+    private static final Map<String, BaseErrorCode> EXCHANGE_BANK_FAIL_CODE_MAP = Map.of();
+
     private final ExchangeQueryService exchangeQueryService;
     private final ExchangeStateWriter stateWriter;
     private final BankClient bankClient;
+    private final BankCallExecutor bankCallExecutor;
     private final UserRepository userRepository;
     private final MerchantRepository merchantRepository;
     private final PasswordEncoder passwordEncoder;
@@ -115,32 +122,24 @@ public class ExchangeCommandServiceV1 implements ExchangeCommandService {
         };
     }
 
-    /** bank 도익 호출 + 결과 분기. 종단이면 Redis 동기화 */
+    /** bank 호출(일시적 오류 1회 재시도) + 결과 분기. 종단이면 Redis 동기화 */
     private ExchangeExecuteResponse runBank(String uuid) {
         ExchangeRequest request = stateWriter.getBankRequest(uuid);
-        BankActResult result = bankClient.exchange(request);
+        BankOutcome<ExchangeResponse> outcome =
+                bankCallExecutor.callBankWithRetry(
+                        () -> bankClient.exchange(request),
+                        EXCHANGE_BANK_FAIL_CODE_MAP,
+                        TransactionErrorCode.EXCHANGE_CONTRACT_FAILED);
 
         ExchangeExecuteResponse response =
-                switch (result.type()) {
-                    case SUCCESS -> success(uuid, result.body());
-                    case FAILURE -> stateWriter.markFailed(uuid);
-                    case UNKNOWN -> retryOnce(uuid, request);
+                switch (outcome.type()) {
+                    case SUCCESS -> success(uuid, outcome.value());
+                    case TERMINAL_FAILED -> stateWriter.markFailed(uuid);
+                    case UNKNOWN -> stateWriter.markUnknown(uuid);
                 };
 
-        syncIdempotency(uuid, response); // SUCCESS -> snapshot, FAILED ->fail, UNKNOWN- > 그대로 둠
+        syncIdempotency(uuid, response); // SUCCESS -> snapshot, FAILED -> fail, UNKNOWN -> 그대로 둠
         return response;
-    }
-
-    /** UNKNOWN 1회 동기 재시도. 그럼에도 불구하도 UNKNOWN이면 markUnknown(batch 가 해소) */
-    private ExchangeExecuteResponse retryOnce(String uuid, ExchangeRequest request) {
-        log.warn("환전 UNKNOWN → 동기 1회 재시도. transactionUuid={}", uuid);
-        BankActResult result = bankClient.exchange(request);
-
-        return switch (result.type()) {
-            case SUCCESS -> success(uuid, result.body());
-            case FAILURE -> stateWriter.markFailed(uuid);
-            case UNKNOWN -> stateWriter.markUnknown(uuid);
-        };
     }
 
     private ExchangeExecuteResponse success(String uuid, ExchangeResponse body) {

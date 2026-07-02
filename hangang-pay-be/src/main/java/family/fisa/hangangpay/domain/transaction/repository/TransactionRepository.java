@@ -40,9 +40,6 @@ public interface TransactionRepository {
     /** 거래 상세 - id + type IN, fromParty/fromAccount/toAccount/fromWallet/toWallet fetch join */
     Optional<Transaction> findDetailByIdAndTypes(Long id, List<TransactionType> types);
 
-    /** 스케줄러용 - UNKNOWN 상태 PAYMENT 트랜잭션 전체 조회 */
-    List<Transaction> findAllUnknownByType(TransactionType type);
-
     /** 파티 식별자 기준 특정 월의 거래 유형별 누적 금액 조회 */
     BigDecimal sumMonthlyAmount(
             Long partyId,
@@ -77,7 +74,7 @@ public interface TransactionRepository {
     boolean existsSuccessCancelFor(String originalTransactionUuid);
 
     /** 복구 가능한 CANCEL 조회 - CANCEL + status = UNKNOWN */
-    Optional<Transaction> findRecoverableCancelByOriginalTransactionUuid(
+    Optional<Transaction> findReconcilableCancelByOriginalTransactionUuid(
             String originalTransactionUuid);
 
     List<Transaction> findMerchantPaymentsBetween(
@@ -86,20 +83,13 @@ public interface TransactionRepository {
             LocalDateTime startInclusive,
             LocalDateTime endExclusive);
 
-    /** 복구 대상 - 오래된 PROCESSING, 시도 한도 미만 */
-    List<Transaction> findStaleProcessingByType(
-            TransactionType type, LocalDateTime threshold, int maxAttempts);
-
-    /** 포기 대상 - 오래된 PROCESSING, 시도 횟수 정확히 한도(원샷 알림용) */
-    List<Transaction> findAbandonedProcessingByType(
-            TransactionType type, LocalDateTime threshold, int maxAttempts);
-
-    /** 환전 reconcile 대상 - UNKNOWN(즉시) + PROCESSING(threshold 이전, 라이브 제외), 시도 한도 미만 */
-    List<Transaction> findExchangeReconcileTargets(int maxRetry, LocalDateTime threshold);
+    /** reconcile 대상(공통) - UNKNOWN(즉시) + PROCESSING(threshold 이전, 라이브 제외), 시도 한도 미만 */
+    List<Transaction> findReconcileTargets(
+            TransactionType type, int maxAttempts, LocalDateTime threshold);
 
     /** 만료 대상 - EXCHANGE + PENDING + createdAt < threshold */
     List<Transaction> findStalePendingExchangeIntents(LocalDateTime threshold);
 
-    /** 환전 reconcile 포기 대상 - PROCESSING/UNKNOWN + 시도 한도 소진 */
-    List<Transaction> findExchangeAbandonedTargets(int maxRetry);
+    /** reconcile 포기 대상(공통) - PROCESSING/UNKNOWN + 시도 한도 소진(>=) */
+    List<Transaction> findAbandonedTargets(TransactionType type, int maxAttempts);
 }

@@ -73,24 +73,24 @@ Repository는 Port & Adapter 패턴을 따른다. 도메인별 포트 인터페�
 transaction/
   controller/
   service/
-    payment/   PaymentCommandService, PaymentQueryService, PaymentStateWriter
+    payment/   PaymentCommandService, PaymentQueryService, PaymentReconcileService, PaymentStateWriter
     charge/    ChargeCommandService, ChargeQueryService, ChargeStateWriter
     exchange/  ExchangeCommandService, ExchangeQueryService, ExchangeReconcileService, ExchangeStateWriter
-    cancel/    CancelCommandService, CancelStateWriter        # 취소 조회는 결제 내역에 흡수 → QueryService 없음
+    cancel/    CancelCommandService, CancelReconcileService, CancelStateWriter   # 취소 조회는 결제 내역에 흡수 → QueryService 없음
     history/   HistoryQueryService                            # 전 플로우 통합 내역(getAllHistories)
     support/   BankCallExecutor                               # payment·cancel 공용 은행 재시도 엔진
     #  각 폴더: 인터페이스(루트) + v1/{이름}V1(현재 구현) + v0/(향후 대체 구현 예약)
   scheduler/
-    TransactionRecoveryScheduler   # 결제·취소 복구 + 환전 reconcile
+    ReconcileScheduler             # 결제·취소·환전 reconcile (대상 수집 + 반복 + EXPIRED sweep)
     IntentExpiryScheduler          # 결제·충전·환전 intent 만료
   dto/
     user/request/    # 사용자 → BE 요청
     user/response/   # BE → 사용자 응답
-    bank/            # BE ↔ hangang-pay-bank 연동 보조 DTO (BankOutcome, BankErrorBody, ReconcileResult)
+    bank/            # BE ↔ hangang-pay-bank 연동 보조 DTO (BankOutcome)
   internal/, infra/redis/, entity/, repository/, code/
 ```
 
-- 서비스 컴포넌트(Command/Query/StateWriter, ExchangeReconcileService, BankCallExecutor)는 **인터페이스 + 버전 구현체**로 둔다. 인터페이스는 플로우 폴더 루트에 원래 이름으로, 현재 구현은 `v1/{이름}V1`에 두고 `@Service`/`@Component`를 붙인다. 호출처·상호 참조는 **인터페이스 타입**을 주입한다(단일 구현이라 `@Qualifier` 불필요, 대체 구현 추가 시 `@Primary`/`@Qualifier`). `v0/`는 향후 대체 구현용 예약 폴더(`.gitkeep`).
+- 서비스 컴포넌트(Command/Query/StateWriter, {Flow}ReconcileService(payment·cancel·exchange), BankCallExecutor)는 **인터페이스 + 버전 구현체**로 둔다. 인터페이스는 플로우 폴더 루트에 원래 이름으로, 현재 구현은 `v1/{이름}V1`에 두고 `@Service`/`@Component`를 붙인다. 호출처·상호 참조는 **인터페이스 타입**을 주입한다(단일 구현이라 `@Qualifier` 불필요, 대체 구현 추가 시 `@Primary`/`@Qualifier`). `v0/`는 향후 대체 구현용 예약 폴더(`.gitkeep`).
 - 플로우별 폴더(payment/charge/exchange/cancel)에 Command·Query·StateWriter를 모으고 이름을 `{Flow}CommandService`/`{Flow}QueryService`/`{Flow}StateWriter`로 통일한다. 통합 내역은 `history/HistoryQueryService`, payment·cancel 공용 은행 재시도 엔진은 `support/BankCallExecutor`로 분리한다. (구 `TransactionCommandService`/`TransactionQueryService`/`service/writer/`는 제거됨.)
 - 스케줄러는 관심사(복구 / intent 만료)별로 나눈다. `@SchedulerLock`의 `name`은 전역 고유해야 한다.
 

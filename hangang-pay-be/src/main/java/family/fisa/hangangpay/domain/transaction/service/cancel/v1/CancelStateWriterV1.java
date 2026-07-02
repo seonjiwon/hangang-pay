@@ -127,7 +127,7 @@ public class CancelStateWriterV1 implements CancelStateWriter {
     }
 
     /** 복구했지만 은행이 아직 처리 중일 때 재조정 시도 횟수를 1 올린다. (cap 진행용) */
-    public void incrementRecoveryAttempt(String cancelTransactionUuid) {
+    public void incrementReconcileAttempt(String cancelTransactionUuid) {
         Transaction cancelTx = getTransactionByUuid(cancelTransactionUuid);
         cancelTx.incrementReconcileAttempt();
     }
@@ -138,27 +138,27 @@ public class CancelStateWriterV1 implements CancelStateWriter {
         cancelTx.markExpired();
     }
 
-    public CancelExecutionPrepared prepareRecovery(Long merchantPartyId, Long transactionId) {
+    public CancelExecutionPrepared prepareReconcile(Long merchantPartyId, Long transactionId) {
         Transaction original = getPaymentTransaction(transactionId);
 
         original.validateMerchantIsReceiver(merchantPartyId);
 
-        Transaction cancelTx = getRecoverableCancelTransaction(original.getTransactionUuid());
+        Transaction cancelTx = getReconcilableCancelTransaction(original.getTransactionUuid());
 
         return CancelExecutionPrepared.from(original, cancelTx);
     }
 
-    public PaymentCancelResponse applyRecoveryResult(
+    public PaymentCancelResponse applyReconcileResult(
             String cancelTransactionUuid, BankTransactionStatusResponse bankStatus) {
         Transaction cancelTx = getTransactionByUuid(cancelTransactionUuid);
 
         if (bankStatus.status() == TransactionStatus.SUCCESS) {
-            validateBankSuccessRecoveryResult(bankStatus);
-            cancelTx.recoverSuccess(null, String.valueOf(bankStatus.bankTransactionId()));
+            validateBankSuccessReconcileResult(bankStatus);
+            cancelTx.reconcileSuccess(null, String.valueOf(bankStatus.bankTransactionId()));
         }
 
         if (bankStatus.status() == TransactionStatus.FAILED) {
-            cancelTx.recoverFailed();
+            cancelTx.reconcileFailed();
         }
 
         // PROCESSING(은행 아직 처리 중)이면 상태를 바꾸지 않고 현재 상태(UNKNOWN/PROCESSING) 그대로 반환한다.
@@ -180,9 +180,9 @@ public class CancelStateWriterV1 implements CancelStateWriter {
                 .orElseThrow(() -> new BusinessException(TransactionErrorCode.PAYMENT_NOT_FOUND));
     }
 
-    private Transaction getRecoverableCancelTransaction(String originalTransactionUuid) {
+    private Transaction getReconcilableCancelTransaction(String originalTransactionUuid) {
         return transactionRepository
-                .findRecoverableCancelByOriginalTransactionUuid(originalTransactionUuid)
+                .findReconcilableCancelByOriginalTransactionUuid(originalTransactionUuid)
                 .orElseThrow(
                         () -> new BusinessException(TransactionErrorCode.CANCEL_NOT_RECOVERABLE));
     }
@@ -197,7 +197,7 @@ public class CancelStateWriterV1 implements CancelStateWriter {
         return "APV-" + LocalDateTime.now().getYear() + "-" + String.format("%08d", id);
     }
 
-    private void validateBankSuccessRecoveryResult(BankTransactionStatusResponse bankStatus) {
+    private void validateBankSuccessReconcileResult(BankTransactionStatusResponse bankStatus) {
         if (bankStatus.bankTransactionId() == null) {
             throw new BusinessException(TransactionErrorCode.PAYMENT_RECOVERY_RESULT_INVALID);
         }

@@ -6,6 +6,7 @@ import family.fisa.hangangpay.domain.transaction.dto.user.request.PaymentIntentC
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecuteResponse;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentIntentResponse;
 import family.fisa.hangangpay.domain.transaction.service.payment.PaymentCommandService;
+import family.fisa.hangangpay.domain.transaction.service.payment.PaymentReconcileService;
 import family.fisa.hangangpay.global.response.ApiResponse;
 import family.fisa.hangangpay.global.session.SessionAttributeNames;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 public class PaymentController {
 
     private final PaymentCommandService paymentCommandService;
+    private final PaymentReconcileService paymentReconcileService;
 
     @PostMapping("/intents")
     public ResponseEntity<ApiResponse<PaymentIntentResponse>> createPaymentIntent(
@@ -55,11 +57,11 @@ public class PaymentController {
 
     /** UNKNOWN 상태 결제를 복구하기 위한 재조회/재동기화 API */
     @PostMapping("/{transactionUuid}/recover")
-    public ResponseEntity<ApiResponse<PaymentExecuteResponse>> recoverPayment(
+    public ResponseEntity<ApiResponse<PaymentExecuteResponse>> reconcilePayment(
             @SessionAttribute(SessionAttributeNames.PARTY_ID) Long partyId,
             @PathVariable String transactionUuid) {
         PaymentExecuteResponse response =
-                paymentCommandService.recoverPayment(partyId, transactionUuid);
+                paymentReconcileService.reconcilePayment(partyId, transactionUuid);
 
         return ResponseEntity.ok(
                 ApiResponse.onSuccess(TransactionSuccessCode.PAYMENT_RECOVERED, response));

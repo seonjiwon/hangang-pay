@@ -2,6 +2,8 @@ package family.fisa.hangangpay.domain.transaction.service.charge.v1;
 
 import family.fisa.hangangpay.client.bank.BankClient;
 import family.fisa.hangangpay.client.bank.dto.response.ChargeResponse;
+import family.fisa.hangangpay.domain.transaction.code.TransactionErrorCode;
+import family.fisa.hangangpay.domain.transaction.dto.bank.BankOutcome;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeExecuteRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.request.ChargeIntentCreateRequest;
 import family.fisa.hangangpay.domain.transaction.dto.user.response.ChargeExecuteResponse;
@@ -14,13 +16,16 @@ import family.fisa.hangangpay.domain.transaction.internal.charge.ChargeExecution
 import family.fisa.hangangpay.domain.transaction.internal.charge.ChargeIdempotencyStore;
 import family.fisa.hangangpay.domain.transaction.service.charge.ChargeCommandService;
 import family.fisa.hangangpay.domain.transaction.service.charge.ChargeStateWriter;
+import family.fisa.hangangpay.domain.transaction.service.support.BankCallExecutor;
+import family.fisa.hangangpay.global.code.error.BaseErrorCode;
+import family.fisa.hangangpay.global.exception.BusinessException;
 import java.time.LocalDateTime;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.ResourceAccessException;
 
 @Slf4j
 @Service
@@ -30,9 +35,18 @@ public class ChargeCommandServiceV1 implements ChargeCommandService {
     /** intent TTL(분). 만료 스케줄러 기준. */
     private static final long INTENT_TTL_MINUTES = 10L;
 
+    /** 충전 종단 실패로 매핑할 bank 오류 코드. 미매핑 코드는 fallback(CHARGE_FAILED). */
+    private static final Map<String, BaseErrorCode> CHARGE_BANK_FAIL_CODE_MAP =
+            Map.of(
+                    "TRANSACTION_INSUFFICIENT_BALANCE",
+                    TransactionErrorCode.CHARGE_INSUFFICIENT_BALANCE,
+                    "TRANSACTION_ALREADY_FAILED",
+                    TransactionErrorCode.CHARGE_ALREADY_FAILED);
+
     private final BankClient bankClient;
     private final ChargeIdempotencyStore chargeIdempotencyStore;
     private final ChargeStateWriter chargeStateWriter;
+    private final BankCallExecutor bankCallExecutor;
 
     // 의도 중복 생성 가드 (best-effort 부하 제어)
     private final IntentCreationGuard intentCreationGuard;
@@ -59,33 +73,44 @@ public class ChargeCommandServiceV1 implements ChargeCommandService {
 
         ChargeExecutionPrepared prepared = result.prepared();
 
-        // 은행 충전 요청
-        ChargeResponse bankResponse;
-        try {
-            log.info("충전 은행 요청 시작. transactionUuid={}", prepared.transactionUuid());
-            bankResponse = bankClient.charge(prepared.toBankChargeRequest());
-            log.info("충전 은행 요청 완료. transactionUuid={}", prepared.transactionUuid());
-        } catch (ResourceAccessException ex) {
-            log.error("충전 은행 연동 실패. transactionUuid={}", prepared.transactionUuid(), ex);
-            ChargeExecuteResponse response =
-                    chargeStateWriter.markUnknown(prepared.transactionUuid());
-            chargeIdempotencyStore.markExecutionStatus(
-                    prepared.transactionUuid(), TransactionStatus.UNKNOWN);
-            return response;
-        }
+        // 은행 충전 요청 (일시적 오류 1회 재시도 → 결과 분류)
+        log.info("충전 은행 요청 시작. transactionUuid={}", prepared.transactionUuid());
+        BankOutcome<ChargeResponse> outcome =
+                bankCallExecutor.callBankWithRetry(
+                        () -> bankClient.charge(prepared.toBankChargeRequest()),
+                        CHARGE_BANK_FAIL_CODE_MAP,
+                        TransactionErrorCode.CHARGE_FAILED);
 
-        // 충전 성공 처리
-        ChargeExecuteResponse response =
-                chargeStateWriter.completeSuccess(
-                        prepared.transactionUuid(),
-                        bankResponse.txHash(),
-                        String.valueOf(bankResponse.bankTransactionId()),
-                        bankResponse.confirmedAt(),
-                        bankResponse.walletBalance());
-
-        chargeIdempotencyStore.completeExecution(prepared.transactionUuid(), response);
-
-        return response;
+        return switch (outcome.type()) {
+            case SUCCESS -> {
+                ChargeResponse bankResponse = outcome.value();
+                log.info("충전 은행 요청 완료. transactionUuid={}", prepared.transactionUuid());
+                ChargeExecuteResponse response =
+                        chargeStateWriter.completeSuccess(
+                                prepared.transactionUuid(),
+                                bankResponse.txHash(),
+                                String.valueOf(bankResponse.bankTransactionId()),
+                                bankResponse.confirmedAt(),
+                                bankResponse.walletBalance());
+                chargeIdempotencyStore.completeExecution(prepared.transactionUuid(), response);
+                yield response;
+            }
+            case UNKNOWN -> {
+                log.warn("충전 은행 응답 불확실(UNKNOWN). transactionUuid={}", prepared.transactionUuid());
+                ChargeExecuteResponse response =
+                        chargeStateWriter.markUnknown(prepared.transactionUuid());
+                chargeIdempotencyStore.markExecutionStatus(
+                        prepared.transactionUuid(), TransactionStatus.UNKNOWN);
+                yield response;
+            }
+            case TERMINAL_FAILED -> {
+                log.warn("충전 종단 실패. transactionUuid={}", prepared.transactionUuid());
+                chargeStateWriter.markFailed(prepared.transactionUuid());
+                chargeIdempotencyStore.markExecutionStatus(
+                        prepared.transactionUuid(), TransactionStatus.FAILED);
+                throw new BusinessException(outcome.errorCode());
+            }
+        };
     }
 
     private LocalDateTime expiresAt() {

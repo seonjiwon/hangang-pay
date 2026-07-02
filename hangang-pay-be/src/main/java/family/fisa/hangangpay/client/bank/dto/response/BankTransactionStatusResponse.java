@@ -10,8 +10,8 @@ public record BankTransactionStatusResponse(
         String txHash, // exchange 상태 조회 시 존재. payment/cancel 상태 조회 시 null (blockchain async)
         LocalDateTime confirmedAt) {
 
-    public static BankTransactionStatusResponse failed(String recoveryUuid) {
+    public static BankTransactionStatusResponse failed(String reconcileUuid) {
         return new BankTransactionStatusResponse(
-                recoveryUuid, null, TransactionStatus.FAILED, null, null);
+                reconcileUuid, null, TransactionStatus.FAILED, null, null);
     }
 }
