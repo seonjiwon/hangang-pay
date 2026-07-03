@@ -1,18 +1,14 @@
 package family.fisa.hangangpaybank.domain.institution.repository;
 
 import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
-import jakarta.persistence.LockModeType;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
-public interface BankWalletRepository extends JpaRepository<BankWallet, Long> {
+/** bank_wallet 도메인 저장소 포트. 구현은 {@code BankWalletRepositoryImpl}. */
+public interface BankWalletRepository {
+
+    BankWallet save(BankWallet bankWallet);
 
     Optional<BankWallet> findByWalletAddress(String walletAddress);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT w FROM BankWallet w WHERE w.walletAddress = :walletAddress")
-    Optional<BankWallet> findByWalletAddressWithLock(@Param("walletAddress") String walletAddress);
+    Optional<BankWallet> findByWalletAddressWithLock(String walletAddress);
 }

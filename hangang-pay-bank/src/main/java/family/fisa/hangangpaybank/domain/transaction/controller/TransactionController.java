@@ -11,10 +11,12 @@ import family.fisa.hangangpaybank.domain.transaction.dto.response.ChargeStatusRe
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ExchangeResponse;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.PaymentResponse;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.PaymentStatusResponse;
-import family.fisa.hangangpaybank.domain.transaction.service.ChargeQueryService;
-import family.fisa.hangangpaybank.domain.transaction.service.ExchangeOrchestrator;
-import family.fisa.hangangpaybank.domain.transaction.service.PaymentQueryService;
-import family.fisa.hangangpaybank.domain.transaction.service.TransactionCommandService;
+import family.fisa.hangangpaybank.domain.transaction.service.cancel.CancelCommandService;
+import family.fisa.hangangpaybank.domain.transaction.service.charge.ChargeCommandService;
+import family.fisa.hangangpaybank.domain.transaction.service.charge.ChargeQueryService;
+import family.fisa.hangangpaybank.domain.transaction.service.exchange.ExchangeCommandService;
+import family.fisa.hangangpaybank.domain.transaction.service.payment.PaymentCommandService;
+import family.fisa.hangangpaybank.domain.transaction.service.payment.PaymentQueryService;
 import family.fisa.hangangpaybank.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,16 +35,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TransactionController {
 
-    private final TransactionCommandService transactionCommandService;
+    private final ChargeCommandService chargeCommandService;
+    private final PaymentCommandService paymentCommandService;
+    private final CancelCommandService cancelCommandService;
+    private final ExchangeCommandService exchangeCommandService;
     private final PaymentQueryService paymentQueryService;
     private final ChargeQueryService chargeQueryService;
-    private final ExchangeOrchestrator exchangeOrchestrator;
 
     @Operation(summary = "충전", description = "은행 계좌 잔액을 차감하고 한강페이 토큰을 mint한다.")
     @PostMapping("/charge")
     public ResponseEntity<ApiResponse<ChargeResponse>> charge(@RequestBody ChargeRequest request) {
         // 1. 충전 처리
-        ChargeResponse response = transactionCommandService.charge(request);
+        ChargeResponse response = chargeCommandService.charge(request);
 
         // 2. 성공 응답 반환
         return ResponseEntity.status(TransactionSuccessCode.TRANSACTION_CHARGE_OK.getStatus())
@@ -56,7 +60,7 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<ExchangeResponse>> exchange(
             @RequestBody ExchangeRequest request) {
         // 1. 환전 처리
-        ExchangeResponse response = exchangeOrchestrator.exchange(request);
+        ExchangeResponse response = exchangeCommandService.exchange(request);
 
         // 2. 성공 응답 반환
         return ResponseEntity.status(TransactionSuccessCode.TRANSACTION_EXCHANGE_OK.getStatus())
@@ -70,7 +74,7 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<PaymentResponse>> payment(
             @RequestBody PaymentRequest request) {
         // 1. 결제 처리
-        PaymentResponse response = transactionCommandService.payment(request);
+        PaymentResponse response = paymentCommandService.payment(request);
 
         // 2. 성공 응답 반환
         return ResponseEntity.status(TransactionSuccessCode.TRANSACTION_PAYMENT_OK.getStatus())
@@ -83,7 +87,7 @@ public class TransactionController {
     @PostMapping("/cancel")
     public ResponseEntity<ApiResponse<CancelResponse>> cancel(@RequestBody CancelRequest request) {
         // 1. 결제 취소 처리
-        CancelResponse response = transactionCommandService.cancel(request);
+        CancelResponse response = cancelCommandService.cancel(request);
 
         // 2. 성공 응답 반환
         return ResponseEntity.status(TransactionSuccessCode.TRANSACTION_CANCEL_OK.getStatus())

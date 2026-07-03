@@ -1,6 +1,6 @@
 package family.fisa.hangangpaybank.domain.blockchainoutbox.service;
 
-import family.fisa.hangangpaybank.domain.blockchain.code.error.BlockchainErrorCode;
+import family.fisa.hangangpaybank.domain.blockchain.code.BlockchainErrorCode;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.entity.BlockchainSyncType;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.port.BlockchainSyncHandler;
 import family.fisa.hangangpaybank.global.exception.BusinessException;

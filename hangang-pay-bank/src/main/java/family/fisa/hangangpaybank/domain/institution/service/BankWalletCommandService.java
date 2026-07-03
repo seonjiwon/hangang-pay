@@ -1,7 +1,7 @@
 package family.fisa.hangangpaybank.domain.institution.service;
 
 import family.fisa.hangangpaybank.domain.blockchain.service.ContractCallService;
-import family.fisa.hangangpaybank.domain.institution.code.error.InstitutionErrorCode;
+import family.fisa.hangangpaybank.domain.institution.code.InstitutionErrorCode;
 import family.fisa.hangangpaybank.domain.institution.dto.request.CreateBankWalletRequest;
 import family.fisa.hangangpaybank.domain.institution.dto.response.BankWalletResponse;
 import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
@@ -30,10 +30,6 @@ public class BankWalletCommandService {
     private final InstitutionRepository institutionRepository;
     private final WalletKeyCipher walletKeyCipher;
     private final ContractCallService contractCallService;
-
-    public BankWallet save(BankWallet bankWallet) {
-        return bankWalletRepository.save(bankWallet);
-    }
 
     public BankWalletResponse create(CreateBankWalletRequest request) {
         // 1. 소속 기관 조회

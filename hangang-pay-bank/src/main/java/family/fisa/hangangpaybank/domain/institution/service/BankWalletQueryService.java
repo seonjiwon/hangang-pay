@@ -1,6 +1,6 @@
 package family.fisa.hangangpaybank.domain.institution.service;
 
-import family.fisa.hangangpaybank.domain.institution.code.error.InstitutionErrorCode;
+import family.fisa.hangangpaybank.domain.institution.code.InstitutionErrorCode;
 import family.fisa.hangangpaybank.domain.institution.dto.response.BankWalletResponse;
 import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
 import family.fisa.hangangpaybank.domain.institution.repository.BankWalletRepository;

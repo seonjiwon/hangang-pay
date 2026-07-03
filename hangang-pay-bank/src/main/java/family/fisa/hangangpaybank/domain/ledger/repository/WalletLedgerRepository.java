@@ -1,14 +1,12 @@
 package family.fisa.hangangpaybank.domain.ledger.repository;
 
-import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
 import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedger;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface WalletLedgerRepository extends JpaRepository<WalletLedger, Long> {
+/** wallet_ledger 도메인 저장소 포트. 구현은 {@code WalletLedgerRepositoryImpl}. */
+public interface WalletLedgerRepository {
 
-    Optional<WalletLedger> findByTransactionUuidAndBankWallet(
-            String transactionUuid, BankWallet bankWallet);
+    WalletLedger save(WalletLedger walletLedger);
 
     Optional<WalletLedger> findFirstByTransactionUuid(String transactionUuid);
 }

@@ -2,7 +2,7 @@ package family.fisa.hangangpaybank.domain.transaction.controller;
 
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionSuccessCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ExchangeStatusResponse;
-import family.fisa.hangangpaybank.domain.transaction.service.ExchangeQueryService;
+import family.fisa.hangangpaybank.domain.transaction.service.exchange.ExchangeQueryService;
 import family.fisa.hangangpaybank.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

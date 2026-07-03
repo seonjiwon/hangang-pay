@@ -3,7 +3,7 @@ package family.fisa.hangangpaybank.domain.blockchainoutbox.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import family.fisa.hangangpaybank.domain.blockchain.code.error.BlockchainErrorCode;
+import family.fisa.hangangpaybank.domain.blockchain.code.BlockchainErrorCode;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.dto.BlockchainSyncMessage;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.entity.BlockchainSyncType;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.port.BlockchainSyncHandler;

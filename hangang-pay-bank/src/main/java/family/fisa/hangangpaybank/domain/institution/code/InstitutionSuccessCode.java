@@ -8,8 +8,6 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 @Getter
 public enum InstitutionSuccessCode implements BaseSuccessCode {
-    INSTITUTION_LIST_OK(HttpStatus.OK, "INSTITUTION_LIST_OK", "기관 목록 조회 성공"),
-    INSTITUTION_DETAIL_OK(HttpStatus.OK, "INSTITUTION_DETAIL_OK", "기관 정보 조회 성공"),
     BANK_ACCOUNT_CREATED(HttpStatus.OK, "BANK_ACCOUNT_CREATED", "계좌가 생성되었습니다."),
     BANK_ACCOUNT_DETAIL_OK(HttpStatus.OK, "BANK_ACCOUNT_DETAIL_OK", "계좌 정보 조회 성공"),
     BANK_WALLET_CREATED(HttpStatus.OK, "BANK_WALLET_CREATED", "지갑이 생성되었습니다."),

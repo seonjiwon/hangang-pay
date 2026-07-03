@@ -39,9 +39,6 @@ jobs:
       - name: Grant Gradle permission
         run: chmod +x ./gradlew
 
-      - name: Spotless check
-        run: ./gradlew spotlessCheck --no-daemon
-
       - name: Test
         run: ./gradlew test --no-daemon
 

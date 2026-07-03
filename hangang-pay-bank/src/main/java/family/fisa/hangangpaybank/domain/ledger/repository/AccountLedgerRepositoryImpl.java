@@ -2,7 +2,6 @@ package family.fisa.hangangpaybank.domain.ledger.repository;
 
 import family.fisa.hangangpaybank.domain.ledger.entity.AccountLedger;
 import family.fisa.hangangpaybank.domain.ledger.repository.jpa.AccountLedgerJpaRepository;
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -16,16 +15,6 @@ public class AccountLedgerRepositoryImpl implements AccountLedgerRepository {
     @Override
     public AccountLedger save(AccountLedger ledger) {
         return jpaRepository.save(ledger);
-    }
-
-    @Override
-    public Optional<AccountLedger> findById(Long id) {
-        return jpaRepository.findById(id);
-    }
-
-    @Override
-    public List<AccountLedger> findByBankAccountId(Long bankAccountId) {
-        return jpaRepository.findByBankAccount_Id(bankAccountId);
     }
 
     @Override

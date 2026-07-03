@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
-import family.fisa.hangangpaybank.domain.institution.code.error.InstitutionErrorCode;
+import family.fisa.hangangpaybank.domain.institution.code.InstitutionErrorCode;
 import family.fisa.hangangpaybank.domain.institution.dto.response.BankWalletResponse;
 import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
 import family.fisa.hangangpaybank.domain.institution.entity.Institution;

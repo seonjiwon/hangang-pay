@@ -1,23 +1,18 @@
 package family.fisa.hangangpaybank.domain.institution.repository;
 
 import family.fisa.hangangpaybank.domain.institution.entity.BankAccount;
-import jakarta.persistence.LockModeType;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
-public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {
+/** bank_account 도메인 저장소 포트. 구현은 {@code BankAccountRepositoryImpl}. */
+public interface BankAccountRepository {
+
+    BankAccount save(BankAccount bankAccount);
+
+    long count();
 
     Optional<BankAccount> findByInstitution_IdAndAccountNumber(
             Long institutionId, String accountNumber);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query(
-            "SELECT a FROM BankAccount a "
-                    + "WHERE a.institution.id = :institutionId AND a.accountNumber = :accountNumber")
     Optional<BankAccount> findByInstitution_IdAndAccountNumberWithLock(
-            @Param("institutionId") Long institutionId,
-            @Param("accountNumber") String accountNumber);
+            Long institutionId, String accountNumber);
 }

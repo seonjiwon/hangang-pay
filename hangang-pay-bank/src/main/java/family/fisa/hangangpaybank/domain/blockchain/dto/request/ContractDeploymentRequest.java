@@ -1,6 +1,6 @@
 package family.fisa.hangangpaybank.domain.blockchain.dto.request;
 
-import family.fisa.hangangpaybank.domain.institution.entity.ContractType;
+import family.fisa.hangangpaybank.domain.blockchain.entity.ContractType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "컨트랙트 단건 배포 결과")

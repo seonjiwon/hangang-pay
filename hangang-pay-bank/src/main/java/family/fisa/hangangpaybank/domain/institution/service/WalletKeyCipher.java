@@ -1,6 +1,6 @@
 package family.fisa.hangangpaybank.domain.institution.service;
 
-import family.fisa.hangangpaybank.domain.institution.code.error.InstitutionErrorCode;
+import family.fisa.hangangpaybank.domain.institution.code.InstitutionErrorCode;
 import family.fisa.hangangpaybank.global.exception.BusinessException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

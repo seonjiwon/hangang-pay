@@ -44,9 +44,4 @@ public class WalletLedger extends BaseEntity {
     private BigDecimal amount;
 
     @Column private LocalDateTime confirmedAt;
-
-    public void confirm(WalletLedgerStatus newStatus, LocalDateTime at) {
-        this.status = newStatus;
-        this.confirmedAt = at;
-    }
 }

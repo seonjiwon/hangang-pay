@@ -12,8 +12,4 @@ public enum InstitutionCode {
     HANA("HN");
 
     private final String code;
-
-    public boolean matches(String institutionCode) {
-        return code.equalsIgnoreCase(institutionCode);
-    }
 }

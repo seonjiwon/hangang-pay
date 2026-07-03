@@ -36,15 +36,6 @@ public class ApiResponse<T> {
     @JsonProperty("result")
     private T result;
 
-    public static ApiResponse<?> onSuccess(BaseSuccessCode code) {
-        return ApiResponse.builder()
-                .isSuccess(true)
-                .status(code.getStatus())
-                .code(code.getCode())
-                .message(code.getMessage())
-                .build();
-    }
-
     public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T result) {
         return ApiResponse.<T>builder()
                 .isSuccess(true)
