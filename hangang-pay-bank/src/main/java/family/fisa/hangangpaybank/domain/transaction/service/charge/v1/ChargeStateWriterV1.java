@@ -4,21 +4,23 @@ import family.fisa.hangangpaybank.domain.blockchain.entity.BlockchainLedger;
 import family.fisa.hangangpaybank.domain.blockchain.entity.BlockchainTxStatus;
 import family.fisa.hangangpaybank.domain.blockchain.repository.BlockchainLedgerRepository;
 import family.fisa.hangangpaybank.domain.blockchain.service.ContractCallService;
+import family.fisa.hangangpaybank.domain.account.code.AccountErrorCode;
 import family.fisa.hangangpaybank.domain.institution.code.InstitutionErrorCode;
-import family.fisa.hangangpaybank.domain.institution.entity.BankAccount;
-import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
+import family.fisa.hangangpaybank.domain.wallet.code.WalletErrorCode;
+import family.fisa.hangangpaybank.domain.account.entity.BankAccount;
+import family.fisa.hangangpaybank.domain.wallet.entity.BankWallet;
 import family.fisa.hangangpaybank.domain.institution.entity.Institution;
-import family.fisa.hangangpaybank.domain.institution.repository.BankAccountRepository;
-import family.fisa.hangangpaybank.domain.institution.repository.BankWalletRepository;
+import family.fisa.hangangpaybank.domain.account.repository.BankAccountRepository;
+import family.fisa.hangangpaybank.domain.wallet.repository.BankWalletRepository;
 import family.fisa.hangangpaybank.domain.institution.repository.InstitutionRepository;
-import family.fisa.hangangpaybank.domain.ledger.entity.AccountLedger;
-import family.fisa.hangangpaybank.domain.ledger.entity.LedgerStatus;
-import family.fisa.hangangpaybank.domain.ledger.entity.LedgerType;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedger;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerDirection;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerStatus;
-import family.fisa.hangangpaybank.domain.ledger.repository.AccountLedgerRepository;
-import family.fisa.hangangpaybank.domain.ledger.repository.WalletLedgerRepository;
+import family.fisa.hangangpaybank.domain.account.entity.AccountLedger;
+import family.fisa.hangangpaybank.domain.account.entity.LedgerStatus;
+import family.fisa.hangangpaybank.domain.account.entity.LedgerType;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedger;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerDirection;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerStatus;
+import family.fisa.hangangpaybank.domain.account.repository.AccountLedgerRepository;
+import family.fisa.hangangpaybank.domain.wallet.repository.WalletLedgerRepository;
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.ChargeRequest;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ChargeResponse;
@@ -236,28 +238,28 @@ public class ChargeStateWriterV1 implements ChargeStateWriter {
         return bankAccountRepository
                 .findByInstitution_IdAndAccountNumber(institutionId, accountNumber)
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_ACCOUNT_NOT_FOUND));
+                        () -> new BusinessException(AccountErrorCode.BANK_ACCOUNT_NOT_FOUND));
     }
 
     private BankAccount findBankAccountWithLock(Long institutionId, String accountNumber) {
         return bankAccountRepository
                 .findByInstitution_IdAndAccountNumberWithLock(institutionId, accountNumber)
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_ACCOUNT_NOT_FOUND));
+                        () -> new BusinessException(AccountErrorCode.BANK_ACCOUNT_NOT_FOUND));
     }
 
     private BankWallet findBankWallet(String walletAddress) {
         return bankWalletRepository
                 .findByWalletAddress(normalizeAddress(walletAddress))
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_WALLET_NOT_FOUND));
+                        () -> new BusinessException(WalletErrorCode.BANK_WALLET_NOT_FOUND));
     }
 
     private BankWallet findBankWalletWithLock(String walletAddress) {
         return bankWalletRepository
                 .findByWalletAddressWithLock(normalizeAddress(walletAddress))
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_WALLET_NOT_FOUND));
+                        () -> new BusinessException(WalletErrorCode.BANK_WALLET_NOT_FOUND));
     }
 
     private static void ensureSufficientBalance(BigDecimal balance, BigDecimal amount) {

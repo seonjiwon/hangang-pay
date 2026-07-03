@@ -116,8 +116,8 @@ class BlockchainOutboxJpaRepositoryTest {
                 Institution.builder()
                         .institutionCode("BOK")
                         .institutionName("한국은행")
-                        .walletAddress("0xOWNER")
-                        .encryptedPrivateKey("key")
+                        .operatorWalletAddress("0xOWNER")
+                        .operatorEncryptedPrivateKey("key")
                         .rpcEndpoint("http://localhost:8545")
                         .build();
         return entityManager.persistAndFlush(institution);

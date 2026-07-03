@@ -4,7 +4,7 @@ BaaS 서버. 한강페이 BE의 BankClient가 호출하는 은행 + 블록체인
 
 ## Responsibility
 
-- 은행 원장: `institution`, `bank_account`, `bank_wallet`, `account_ledger`
+- 은행 원장: `institution`(기관+operator 지갑), `account`(`bank_account`+`account_ledger`), `wallet`(`bank_wallet`+`wallet_ledger`)
 - 블록체인 통합: 컨트랙트 배포(`contract`), Web3j 호출(`ContractCallService`), 거래 로그(`blockchain_ledger`)
 - Custodial 지갑: keypair 생성/암호화 보관, BE는 `walletAddress`만 받아 보관
 
@@ -21,15 +21,17 @@ BaaS 서버. 한강페이 BE의 BankClient가 호출하는 은행 + 블록체인
 
 ```
 family.fisa.hangangpaybank
-├── domain
-│   ├── institution           # 기관, 은행 계좌/지갑
+├── domain                    # aggregate 단위 분리 (계좌/지갑은 각자 원장을 포함)
+│   ├── institution           # 기관 식별 + operator(서명자) 지갑 + Besu RPC 엔드포인트
+│   ├── account               # 은행 계좌(bank_account) + 계좌 원장(account_ledger)
+│   ├── wallet                # 커스터디 지갑(bank_wallet) + 지갑 원장(wallet_ledger)
 │   ├── blockchain            # contract(엔티티/배포/호출) + blockchain_ledger + ContractCallService (service v0/v1)
 │   ├── blockchainoutbox      # 트랜잭션 아웃박스 + 순서보장 + 비동기 sync 디스패치 (service v0/v1)
-│   ├── ledger                # account_ledger + wallet_ledger (원장)
 │   └── transaction           # 거래 처리. service를 flow 폴더 + v0/v1로 분리
 │                             #   service/{charge,payment,cancel,exchange,sync}/ + scheduler/
 ├── global
 │   ├── code/{error,success}  # BaseErrorCode/BaseSuccessCode + General* (공통 베이스만 error/success 하위분리)
+│   ├── crypto                # WalletKeyCipher (지갑 개인키 AES/GCM 암복호 — account·wallet·blockchain 공용)
 │   ├── exception             # BusinessException, GlobalExceptionHandler
 │   ├── response              # ApiResponse 공통 래퍼
 │   ├── entity                # BaseEntity (createdAt, updatedAt)
@@ -54,7 +56,7 @@ family.fisa.hangangpaybank
 ## Error/Success Code
 
 - enum 이름 = `code` 문자열. ex: `INSTITUTION_NOT_FOUND` → `"INSTITUTION_NOT_FOUND"`
-- 도메인 접두어로 그룹핑 (`INSTITUTION_`, `BANK_ACCOUNT_`, `TRANSACTION_`, `BLOCKCHAIN_`, `COMMON_`)
+- 도메인 접두어로 그룹핑 (`INSTITUTION_`, `BANK_ACCOUNT_`, `BANK_WALLET_`, `TRANSACTION_`, `BLOCKCHAIN_`, `COMMON_`)
 - opaque code (`INSTITUTION404`, `COMMON200`) 신규 작성 금지
 
 ## Repository Pattern
@@ -70,7 +72,7 @@ family.fisa.hangangpaybank
 ## Custodial Wallet
 
 - bank가 EC keypair 생성 (`Keys.createEcKeyPair()`)
-- private key는 AES/GCM 암호화 후 `bank_wallet.encrypted_private_key`에 저장 (`WalletKeyCipher`)
+- private key는 AES/GCM 암호화 후 `bank_wallet.encrypted_private_key`에 저장 (`global/crypto/WalletKeyCipher` — operator 지갑 `institution.operator_encrypted_private_key` 복호에도 공용)
 - BE에는 `walletAddress`만 응답. private key 외부 노출 금지.
 - 환경변수: `WALLET_KEY_CIPHER_SECRET` (application.yaml의 `wallet.key-cipher.secret`)
 

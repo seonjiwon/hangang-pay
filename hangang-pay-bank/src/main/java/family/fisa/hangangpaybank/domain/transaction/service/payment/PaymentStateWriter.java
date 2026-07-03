@@ -1,7 +1,7 @@
 package family.fisa.hangangpaybank.domain.transaction.service.payment;
 
-import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedger;
+import family.fisa.hangangpaybank.domain.wallet.entity.BankWallet;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedger;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.CancelRequest;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.PaymentRequest;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.CancelResponse;

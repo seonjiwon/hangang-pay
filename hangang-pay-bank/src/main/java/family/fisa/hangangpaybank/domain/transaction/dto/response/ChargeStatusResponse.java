@@ -1,7 +1,7 @@
 package family.fisa.hangangpaybank.domain.transaction.dto.response;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedger;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerStatus;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedger;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerStatus;
 import java.time.LocalDateTime;
 
 public record ChargeStatusResponse(

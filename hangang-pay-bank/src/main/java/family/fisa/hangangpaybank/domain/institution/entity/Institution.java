@@ -26,14 +26,10 @@ public class Institution extends BaseEntity {
     @Column(nullable = false)
     private String institutionName;
 
-    private String accountNumber;
-
-    private String walletAddress;
+    private String operatorWalletAddress;
 
     @Column(columnDefinition = "TEXT")
-    private String encryptedPrivateKey;
-
-    private String enodeUrl;
+    private String operatorEncryptedPrivateKey;
 
     private String rpcEndpoint;
 }

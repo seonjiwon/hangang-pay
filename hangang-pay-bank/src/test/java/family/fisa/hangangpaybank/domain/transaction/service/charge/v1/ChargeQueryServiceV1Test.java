@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedger;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerStatus;
-import family.fisa.hangangpaybank.domain.ledger.repository.WalletLedgerRepository;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedger;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerStatus;
+import family.fisa.hangangpaybank.domain.wallet.repository.WalletLedgerRepository;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ChargeStatusResponse;
 import family.fisa.hangangpaybank.global.exception.BusinessException;
 import java.util.Optional;

@@ -10,7 +10,7 @@ import family.fisa.hangangpaybank.domain.blockchain.entity.Contract;
 import family.fisa.hangangpaybank.domain.blockchain.entity.ContractType;
 import family.fisa.hangangpaybank.domain.institution.entity.Institution;
 import family.fisa.hangangpaybank.domain.blockchain.repository.ContractRepository;
-import family.fisa.hangangpaybank.domain.institution.service.WalletKeyCipher;
+import family.fisa.hangangpaybank.global.crypto.WalletKeyCipher;
 import family.fisa.hangangpaybank.global.exception.BusinessException;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -161,7 +161,7 @@ public class ContractCallServiceV1 implements ContractCallService {
                     owner.getRpcEndpoint());
             BigInteger balance =
                     readBalance(
-                            web3j, owner.getWalletAddress(), contract.getAddress(), walletAddress);
+                            web3j, owner.getOperatorWalletAddress(), contract.getAddress(), walletAddress);
             log.info(
                     "[blockchain] balanceOf call success. walletAddress={}, contractAddress={}, institutionCode={}, balance={}",
                     walletAddress,
@@ -244,7 +244,7 @@ public class ContractCallServiceV1 implements ContractCallService {
         Web3j web3j = Web3j.build(new HttpService(owner.getRpcEndpoint()));
         try {
             return readMerchant(
-                    web3j, owner.getWalletAddress(), contract.getAddress(), walletAddress);
+                    web3j, owner.getOperatorWalletAddress(), contract.getAddress(), walletAddress);
         } catch (IOException e) {
             throw new BusinessException(BlockchainErrorCode.BLOCKCHAIN_RPC_FAILED);
         } finally {
@@ -301,7 +301,7 @@ public class ContractCallServiceV1 implements ContractCallService {
                                                 BlockchainErrorCode.BLOCKCHAIN_CONTRACT_NOT_FOUND));
         Institution owner = contract.getInstitution();
         Credentials credentials =
-                walletKeyCipher.decryptCredentials(owner.getEncryptedPrivateKey());
+                walletKeyCipher.decryptCredentials(owner.getOperatorEncryptedPrivateKey());
         Web3j web3j = Web3j.build(new HttpService(owner.getRpcEndpoint()));
         try {
             log.info(
@@ -535,7 +535,7 @@ public class ContractCallServiceV1 implements ContractCallService {
 
         // 3. 기관 개인키를 복호화하여 서명 계정 생성
         Credentials credentials =
-                walletKeyCipher.decryptCredentials(owner.getEncryptedPrivateKey());
+                walletKeyCipher.decryptCredentials(owner.getOperatorEncryptedPrivateKey());
 
         // 4. 가관 RPC 엔드포인트로 Web3j 클라이언트 생성
         Web3j web3j = Web3j.build(new HttpService(owner.getRpcEndpoint()));

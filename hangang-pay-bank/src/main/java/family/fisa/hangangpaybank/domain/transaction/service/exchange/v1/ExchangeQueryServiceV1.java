@@ -1,7 +1,7 @@
 package family.fisa.hangangpaybank.domain.transaction.service.exchange.v1;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.AccountLedger;
-import family.fisa.hangangpaybank.domain.ledger.repository.AccountLedgerRepository;
+import family.fisa.hangangpaybank.domain.account.entity.AccountLedger;
+import family.fisa.hangangpaybank.domain.account.repository.AccountLedgerRepository;
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ExchangeStatusResponse;
 import family.fisa.hangangpaybank.domain.transaction.service.exchange.ExchangeQueryService;

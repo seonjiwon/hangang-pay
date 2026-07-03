@@ -1,7 +1,7 @@
 package family.fisa.hangangpaybank.domain.transaction.service.charge.v1;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedger;
-import family.fisa.hangangpaybank.domain.ledger.repository.WalletLedgerRepository;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedger;
+import family.fisa.hangangpaybank.domain.wallet.repository.WalletLedgerRepository;
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ChargeStatusResponse;
 import family.fisa.hangangpaybank.domain.transaction.service.charge.ChargeQueryService;

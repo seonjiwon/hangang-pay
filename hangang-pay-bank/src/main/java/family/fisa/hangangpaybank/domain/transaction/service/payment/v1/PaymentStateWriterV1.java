@@ -7,13 +7,13 @@ import family.fisa.hangangpaybank.domain.blockchainoutbox.dto.payload.CancelBloc
 import family.fisa.hangangpaybank.domain.blockchainoutbox.dto.payload.PaymentBlockchainPayload;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.entity.BlockchainSyncType;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.port.BlockchainSyncRequester;
-import family.fisa.hangangpaybank.domain.institution.code.InstitutionErrorCode;
-import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
-import family.fisa.hangangpaybank.domain.institution.repository.BankWalletRepository;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedger;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerDirection;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerStatus;
-import family.fisa.hangangpaybank.domain.ledger.repository.WalletLedgerRepository;
+import family.fisa.hangangpaybank.domain.wallet.code.WalletErrorCode;
+import family.fisa.hangangpaybank.domain.wallet.entity.BankWallet;
+import family.fisa.hangangpaybank.domain.wallet.repository.BankWalletRepository;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedger;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerDirection;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerStatus;
+import family.fisa.hangangpaybank.domain.wallet.repository.WalletLedgerRepository;
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.CancelRequest;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.PaymentRequest;
@@ -272,14 +272,14 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
         return bankWalletRepository
                 .findByWalletAddress(normalizeAddress(walletAddress))
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_WALLET_NOT_FOUND));
+                        () -> new BusinessException(WalletErrorCode.BANK_WALLET_NOT_FOUND));
     }
 
     private BankWallet findBankWalletWithLock(String walletAddress) {
         return bankWalletRepository
                 .findByWalletAddressWithLock(normalizeAddress(walletAddress))
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_WALLET_NOT_FOUND));
+                        () -> new BusinessException(WalletErrorCode.BANK_WALLET_NOT_FOUND));
     }
 
     private static String normalizeAddress(String address) {

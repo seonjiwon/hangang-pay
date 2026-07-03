@@ -17,7 +17,7 @@ import family.fisa.hangangpaybank.domain.blockchain.entity.Contract;
 import family.fisa.hangangpaybank.domain.blockchain.entity.ContractType;
 import family.fisa.hangangpaybank.domain.institution.entity.Institution;
 import family.fisa.hangangpaybank.domain.blockchain.repository.ContractRepository;
-import family.fisa.hangangpaybank.domain.institution.service.WalletKeyCipher;
+import family.fisa.hangangpaybank.global.crypto.WalletKeyCipher;
 import family.fisa.hangangpaybank.global.exception.BusinessException;
 import java.math.BigInteger;
 import java.util.List;
@@ -563,8 +563,8 @@ class ContractCallServiceV1Test {
                 .id(1L)
                 .institutionCode("BoK")
                 .institutionName("한국은행")
-                .walletAddress(WALLET_ADDRESS)
-                .encryptedPrivateKey(PRIVATE_KEY)
+                .operatorWalletAddress(WALLET_ADDRESS)
+                .operatorEncryptedPrivateKey(PRIVATE_KEY)
                 .rpcEndpoint(RPC_ENDPOINT)
                 .build();
     }

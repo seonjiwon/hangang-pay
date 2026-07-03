@@ -2,16 +2,18 @@ package family.fisa.hangangpaybank.domain.transaction.service.exchange.v1;
 
 import family.fisa.hangangpaybank.domain.blockchainoutbox.dto.payload.ExchangeBlockchainPayload;
 import family.fisa.hangangpaybank.domain.blockchainoutbox.port.BlockchainSyncRequester;
+import family.fisa.hangangpaybank.domain.account.code.AccountErrorCode;
 import family.fisa.hangangpaybank.domain.institution.code.InstitutionErrorCode;
-import family.fisa.hangangpaybank.domain.institution.entity.BankAccount;
-import family.fisa.hangangpaybank.domain.institution.entity.BankWallet;
-import family.fisa.hangangpaybank.domain.institution.repository.BankAccountRepository;
-import family.fisa.hangangpaybank.domain.institution.repository.BankWalletRepository;
+import family.fisa.hangangpaybank.domain.wallet.code.WalletErrorCode;
+import family.fisa.hangangpaybank.domain.account.entity.BankAccount;
+import family.fisa.hangangpaybank.domain.wallet.entity.BankWallet;
+import family.fisa.hangangpaybank.domain.account.repository.BankAccountRepository;
+import family.fisa.hangangpaybank.domain.wallet.repository.BankWalletRepository;
 import family.fisa.hangangpaybank.domain.institution.repository.InstitutionRepository;
-import family.fisa.hangangpaybank.domain.ledger.entity.AccountLedger;
-import family.fisa.hangangpaybank.domain.ledger.entity.LedgerStatus;
-import family.fisa.hangangpaybank.domain.ledger.entity.LedgerType;
-import family.fisa.hangangpaybank.domain.ledger.repository.AccountLedgerRepository;
+import family.fisa.hangangpaybank.domain.account.entity.AccountLedger;
+import family.fisa.hangangpaybank.domain.account.entity.LedgerStatus;
+import family.fisa.hangangpaybank.domain.account.entity.LedgerType;
+import family.fisa.hangangpaybank.domain.account.repository.AccountLedgerRepository;
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.ExchangeSyncRequest;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.ExchangeRequest;
@@ -161,21 +163,21 @@ public class ExchangeStateWriterV1 implements ExchangeStateWriter {
         return bankWalletRepository
                 .findByWalletAddressWithLock(normalizeAddress(walletAddress))
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_WALLET_NOT_FOUND));
+                        () -> new BusinessException(WalletErrorCode.BANK_WALLET_NOT_FOUND));
     }
 
     private BankAccount findBankAccount(Long institutionId, String accountNumber) {
         return bankAccountRepository
                 .findByInstitution_IdAndAccountNumber(institutionId, accountNumber)
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_ACCOUNT_NOT_FOUND));
+                        () -> new BusinessException(AccountErrorCode.BANK_ACCOUNT_NOT_FOUND));
     }
 
     private BankAccount findBankAccountWithLock(Long institutionId, String accountNumber) {
         return bankAccountRepository
                 .findByInstitution_IdAndAccountNumberWithLock(institutionId, accountNumber)
                 .orElseThrow(
-                        () -> new BusinessException(InstitutionErrorCode.BANK_ACCOUNT_NOT_FOUND));
+                        () -> new BusinessException(AccountErrorCode.BANK_ACCOUNT_NOT_FOUND));
     }
 
     /** 토큰 잔액 검증 — DB 잔액(서비스 단위)과 요청 금액을 직접 비교 (결제 ensureSufficientBalance와 동일). */

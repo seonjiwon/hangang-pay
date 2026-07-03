@@ -7,7 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import family.fisa.hangangpaybank.domain.blockchain.code.BlockchainErrorCode;
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerStatus;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerStatus;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.CancelRequest;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.CancelResponse;
 import family.fisa.hangangpaybank.domain.transaction.service.payment.PaymentStateWriter;

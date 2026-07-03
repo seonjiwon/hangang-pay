@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.AccountLedger;
-import family.fisa.hangangpaybank.domain.ledger.entity.LedgerStatus;
-import family.fisa.hangangpaybank.domain.ledger.repository.AccountLedgerRepository;
+import family.fisa.hangangpaybank.domain.account.entity.AccountLedger;
+import family.fisa.hangangpaybank.domain.account.entity.LedgerStatus;
+import family.fisa.hangangpaybank.domain.account.repository.AccountLedgerRepository;
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ExchangeStatusResponse;
 import family.fisa.hangangpaybank.global.exception.BusinessException;

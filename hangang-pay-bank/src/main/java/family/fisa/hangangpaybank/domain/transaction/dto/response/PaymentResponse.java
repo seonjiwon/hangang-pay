@@ -1,6 +1,6 @@
 package family.fisa.hangangpaybank.domain.transaction.dto.response;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.WalletLedgerStatus;
+import family.fisa.hangangpaybank.domain.wallet.entity.WalletLedgerStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

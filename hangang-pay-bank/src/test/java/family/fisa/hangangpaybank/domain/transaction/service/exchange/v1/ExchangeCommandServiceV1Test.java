@@ -6,7 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.AccountLedger;
+import family.fisa.hangangpaybank.domain.account.entity.AccountLedger;
 import family.fisa.hangangpaybank.domain.transaction.code.TransactionErrorCode;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.ExchangeRequest;
 import family.fisa.hangangpaybank.domain.transaction.dto.response.ExchangeResponse;

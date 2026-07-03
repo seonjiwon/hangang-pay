@@ -1,6 +1,6 @@
 package family.fisa.hangangpaybank.domain.transaction.dto.response;
 
-import family.fisa.hangangpaybank.domain.ledger.entity.AccountLedger;
+import family.fisa.hangangpaybank.domain.account.entity.AccountLedger;
 import family.fisa.hangangpaybank.domain.transaction.dto.request.ExchangeRequest;
 import java.math.BigDecimal;
 import lombok.Builder;
