@@ -1,0 +1,121 @@
+# ============================================================
+# 한강페이 BANK 배포 (CD) — Docker Hub 이미지 빌드 → Tailscale 조인 → on-prem SSH pull+restart
+# 수동 실행(workflow_dispatch). bank는 개인 OpenStack(NAT/Tailscale 뒤)이라 be의 SSM/ECR 대신
+# GitHub 러너를 tailnet에 임시 조인시켜 bank(100.83.33.81)로 직접 SSH 배포한다.
+# 사전 준비(Secrets): DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, TS_AUTHKEY(Tailscale ephemeral authkey),
+#                     BANK_SSH_KEY(bank 인스턴스 SSH 개인키)
+# 사전 준비(Variables): BANK_HOST=100.83.33.81, BANK_SSH_USER=ubuntu
+# bank Docker Hub 레포는 public 이어야 로그인 없이 pull(비공개면 원격 스크립트에 docker login 추가).
+# ============================================================
+name: BANK CD
+
+on:
+  workflow_dispatch:
+  # prod 브랜치 push로도 배포하려면 아래 주석 해제
+  # push:
+  #   branches: [prod]
+  #   paths:
+  #     - "hangang-pay-bank/**"
+  #     - ".github/workflows/bank-cd-prod.yml"
+
+permissions:
+  contents: read
+
+# 동시 배포 방지: 한 번에 하나만
+concurrency:
+  group: bank-cd
+  cancel-in-progress: false
+
+env:
+  IMAGE_REPO: hangang-pay-bank # Docker Hub: <DOCKERHUB_USERNAME>/hangang-pay-bank
+
+jobs:
+  # ----------------------------------------------------------
+  # [1] 테스트 — 배포 전 안전망 (bank는 Redis 미사용 → 서비스 컨테이너 없음)
+  # ----------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hangang-pay-bank
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: gradle
+      - run: chmod +x ./gradlew
+      - run: ./gradlew test --no-daemon
+
+  # ----------------------------------------------------------
+  # [2] 이미지 빌드 → Docker Hub push (latest + commit sha)
+  # ----------------------------------------------------------
+  build-push:
+    name: Build & Push to Docker Hub
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push image
+        uses: docker/build-push-action@v7
+        with:
+          context: hangang-pay-bank
+          file: hangang-pay-bank/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ github.sha }}
+
+  # ----------------------------------------------------------
+  # [3] Tailscale 조인 → on-prem bank로 SSH 배포 (기존 .env 재사용, APP_IMAGE만 sha로 오버라이드)
+  # ----------------------------------------------------------
+  deploy:
+    name: Deploy via Tailscale SSH
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          # authkey에 태그가 걸려 있으면 아래 주석 해제해서 태그 지정
+          # tags: tag:ci
+
+      - name: Deploy to bank over SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.BANK_SSH_KEY }}" > ~/.ssh/bank_key
+          chmod 600 ~/.ssh/bank_key
+
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ github.sha }}"
+
+          # bank 인스턴스에서 실행할 스크립트. $IMAGE는 러너에서 치환, 원격 셸 구문(\$(...))은 이스케이프.
+          REMOTE_SCRIPT="set -e
+          cd ~/hangang-pay/hangang-pay-bank/deploy
+          echo \"deploying ${IMAGE}\"
+          export APP_IMAGE=${IMAGE}
+          docker compose pull app
+          docker compose up -d app
+          for i in \$(seq 1 30); do curl -fsS http://127.0.0.1:8081/actuator/health && exit 0; sleep 5; done
+          echo 'health check timeout'; docker compose logs --tail 100 app; exit 1"
+
+          ssh -i ~/.ssh/bank_key \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "${{ vars.BANK_SSH_USER }}@${{ vars.BANK_HOST }}" \
+            bash -s <<< "$REMOTE_SCRIPT"
