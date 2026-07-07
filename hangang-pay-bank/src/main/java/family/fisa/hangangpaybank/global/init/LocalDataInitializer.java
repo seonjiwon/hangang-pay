@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Component
-@Profile({"local", "onprem-test"})
+@Profile({"local", "prod"})
 @RequiredArgsConstructor
 public class LocalDataInitializer implements ApplicationRunner {
 

@@ -1,25 +1,23 @@
 name: BE CI
 
-# BE 코드나 BE CI 워크플로우가 바뀔 때만 실행한다.
-# dev/test 브랜치 PR은 검증만, test 브랜치 push는 Docker 이미지 배포까지 진행한다.
-# [비활성화] CI/CD가 돌지 않도록 트리거 전체 주석 처리. 복원 시 아래 on: 블록의 주석만 해제.
-# on:
-#   push:
-#     branches: [dev, test]
-#     paths:
-#       - "hangang-pay-be/**"
-#       - ".github/workflows/be-ci.yml"
-#   pull_request:
-#     branches: [dev, test]
-#     paths:
-#       - "hangang-pay-be/**"
-#       - ".github/workflows/be-ci.yml"
+# BE 코드나 BE CI 워크플로우가 바뀔 때만 실행. dev 브랜치 push/PR을 검증(테스트+빌드)한다.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "hangang-pay-be/**"
+      - ".github/workflows/be-ci.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "hangang-pay-be/**"
+      - ".github/workflows/be-ci.yml"
 
 permissions:
   contents: read
 
 jobs:
-  # Gradle 기반 정적 포맷 검사, 단위 테스트, jar 빌드를 수행한다.
+  # Gradle 단위 테스트 + jar 빌드.
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -42,7 +40,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          # 브랜치/히스토리 정보가 필요할 수 있어 전체 히스토리를 받는다.
           fetch-depth: 0
 
       - name: Set up JDK 17
@@ -60,122 +57,3 @@ jobs:
 
       - name: Build jar
         run: ./gradlew bootJar --no-daemon
-
-  # 테스트가 끝나면 온프레미스 BE 인스턴스에 접속해 컨테이너를 교체한다.
-  deploy:
-    name: Deploy to on-prem BE
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/test'
-    environment: test
-
-    steps:
-      # Bastion을 경유해 온프레미스 BE 인스턴스에 접속할 SSH 설정을 준비한다.
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          printf '%s\n' "${{ secrets.ONPREM_BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
-          printf '%s\n' "${{ secrets.ONPREM_INSTANCE_SSH_KEY }}" > ~/.ssh/team01.pem
-          chmod 600 ~/.ssh/bastion_key ~/.ssh/team01.pem
-
-          cat > ~/.ssh/config <<EOF
-          Host onprem-bastion
-            HostName ${{ secrets.ONPREM_BASTION_HOST }}
-            User ${{ secrets.ONPREM_BASTION_USER }}
-            Port ${{ secrets.ONPREM_BASTION_PORT }}
-            IdentityFile ~/.ssh/bastion_key
-            StrictHostKeyChecking no
-
-          Host onprem-be
-            HostName ${{ secrets.ONPREM_BE_HOST }}
-            User ubuntu
-            IdentityFile ~/.ssh/team01.pem
-            ProxyJump onprem-bastion
-            StrictHostKeyChecking no
-          EOF
-
-      # 최신 Docker 이미지를 pull 한 뒤 기존 컨테이너를 교체하고 Redis 연결 및 Actuator health를 검증한다.
-      - name: Pull image and restart container
-        run: |
-          ssh onprem-be 'bash -s' <<'EOF'
-          set -Eeuo pipefail
-
-          echo '${{ secrets.DOCKERHUB_TOKEN }}' | sudo docker login \
-            --username '${{ secrets.DOCKERHUB_USERNAME }}' \
-            --password-stdin
-
-          sudo docker pull '${{ secrets.DOCKERHUB_USERNAME }}/hangang-pay-be:test-latest'
-
-          sudo docker stop hangang-pay-be || true
-          sudo docker rm hangang-pay-be || true
-          sudo fuser -k 8080/tcp 2>/dev/null || true
-
-          REDIS_HOST='${{ vars.ONPREM_REDIS_HOST }}'
-          REDIS_PORT='${{ vars.ONPREM_REDIS_PORT || '6379' }}'
-
-          if [ -z "$REDIS_HOST" ]; then
-            echo "ONPREM_REDIS_HOST is empty. Set it in the test environment variables."
-            exit 1
-          fi
-
-          echo "Checking Redis TCP connectivity from onprem-be to ${REDIS_HOST}:${REDIS_PORT}..."
-          if ! timeout 5 bash -c "</dev/tcp/${REDIS_HOST}/${REDIS_PORT}"; then
-            echo "Cannot reach Redis from onprem-be at ${REDIS_HOST}:${REDIS_PORT}."
-            exit 1
-          fi
-
-          sudo docker run -d \
-            --name hangang-pay-be \
-            --restart unless-stopped \
-            -p 8080:8080 \
-            -e SPRING_PROFILES_ACTIVE=onprem-test \
-            -e DB_URL='${{ secrets.ONPREM_BE_DB_URL }}' \
-            -e DB_USERNAME='${{ secrets.ONPREM_BE_DB_USERNAME }}' \
-            -e DB_PASSWORD='${{ secrets.ONPREM_BE_DB_PASSWORD }}' \
-            -e BANK_BASE_URL='${{ secrets.ONPREM_BANK_BASE_URL }}' \
-            -e REDIS_HOST="$REDIS_HOST" \
-            -e REDIS_PORT="$REDIS_PORT" \
-            -e VERCEL_PRODUCTION_URL='${{ vars.VERCEL_PRODUCTION_URL }}' \
-            '${{ secrets.DOCKERHUB_USERNAME }}/hangang-pay-be:test-latest'
-
-          HEALTH_MAX_ATTEMPTS=10
-          HEALTH_RETRY_SECONDS=5
-          healthy=false
-
-          echo "Waiting for actuator health check..."
-          for attempt in $(seq 1 "$HEALTH_MAX_ATTEMPTS"); do
-            http_status=$(curl -sS -o /tmp/hangang-pay-be-health.json -w '%{http_code}' http://127.0.0.1:8080/actuator/health || true)
-            if [ "$http_status" = "200" ]; then
-              cat /tmp/hangang-pay-be-health.json
-              echo
-              echo "hangang-pay-be is healthy."
-              healthy=true
-              break
-            fi
-
-            echo "Actuator health returned HTTP ${http_status}."
-            cat /tmp/hangang-pay-be-health.json || true
-            echo
-
-            if ! sudo docker inspect -f '{{.State.Running}}' hangang-pay-be | grep -q true; then
-              echo "hangang-pay-be container stopped during startup."
-              sudo docker logs --tail 200 hangang-pay-be
-              exit 1
-            fi
-
-            echo "Health check attempt ${attempt}/${HEALTH_MAX_ATTEMPTS} failed. Retrying..."
-            sleep "$HEALTH_RETRY_SECONDS"
-          done
-
-          if [ "$healthy" = "true" ]; then
-            sudo docker ps --filter "name=hangang-pay-be"
-            exit 0
-          fi
-
-          echo "hangang-pay-be health check timed out."
-          sudo docker ps --filter "name=hangang-pay-be"
-          sudo docker logs --tail 200 hangang-pay-be
-          exit 1
-          EOF

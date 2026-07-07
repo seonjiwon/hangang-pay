@@ -33,7 +33,7 @@ services:
       RPC_NEXT_UPSTREAM_TRIES: ${RPC_NEXT_UPSTREAM_TRIES:-4}
       
   node1:
-    image: hyperledger/besu:26.4.0
+    image: besu-jdk21:26.4.0
     container_name: besu-node1
     volumes:
       - ./node-1/data:/var/lib/besu
@@ -64,7 +64,7 @@ services:
       - --rpc-http-max-active-connections=200
 
   node2:
-    image: hyperledger/besu:26.4.0
+    image: besu-jdk21:26.4.0
     container_name: besu-node2
     volumes:
       - ./node-2/data:/var/lib/besu
@@ -95,7 +95,7 @@ services:
       - --bonsai-trie-logs-pruning-window-size=150000
       - --rpc-http-max-active-connections=200
   node3:
-    image: hyperledger/besu:26.4.0
+    image: besu-jdk21:26.4.0
     container_name: besu-node3
     volumes:
       - ./node-3/data:/var/lib/besu
@@ -126,7 +126,7 @@ services:
       - --bonsai-trie-logs-pruning-window-size=150000
       - --rpc-http-max-active-connections=200
   node4:
-    image: hyperledger/besu:26.4.0
+    image: besu-jdk21:26.4.0
     container_name: besu-node4
     volumes:
       - ./node-4/data:/var/lib/besu

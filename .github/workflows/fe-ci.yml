@@ -1,17 +1,17 @@
 name: FE CI
 
-# [비활성화] CI/CD가 돌지 않도록 트리거 전체 주석 처리. 복원 시 아래 on: 블록의 주석만 해제.
-# on:
-#   push:
-#     branches: [dev, test]
-#     paths:
-#       - "hangang-pay-fe/**"
-#       - ".github/workflows/fe-ci.yml"
-#   pull_request:
-#     branches: [dev, test]
-#     paths:
-#       - "hangang-pay-fe/**"
-#       - ".github/workflows/fe-ci.yml"
+# FE 코드나 이 워크플로 변경 시 dev 브랜치 push/PR을 검증(포맷/린트/테스트/빌드)한다.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "hangang-pay-fe/**"
+      - ".github/workflows/fe-ci.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "hangang-pay-fe/**"
+      - ".github/workflows/fe-ci.yml"
 
 permissions:
   contents: read
@@ -46,60 +46,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Upload dist artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/test'
-        uses: actions/upload-artifact@v4
-        with:
-          name: fe-dist
-          path: hangang-pay-fe/dist/
-          retention-days: 1
-
-  deploy:
-    name: Deploy to on-prem nginx
-    runs-on: ubuntu-latest
-    needs: verify
-    if: github.event_name == 'push' && github.ref == 'refs/heads/test'
-    environment: test
-
-    steps:
-      - name: Download dist artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: fe-dist
-          path: dist/
-
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          printf '%s\n' "${{ secrets.ONPREM_BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
-          printf '%s\n' "${{ secrets.ONPREM_INSTANCE_SSH_KEY }}" > ~/.ssh/fe.pem
-          chmod 600 ~/.ssh/bastion_key ~/.ssh/fe.pem
-
-          cat > "$HOME/.ssh/config" <<EOF
-          Host onprem-bastion
-            HostName ${{ secrets.ONPREM_BASTION_HOST }}
-            User ${{ secrets.ONPREM_BASTION_USER }}
-            Port ${{ secrets.ONPREM_BASTION_PORT }}
-            IdentityFile $HOME/.ssh/bastion_key
-            StrictHostKeyChecking no
-
-          Host onprem-fe
-            HostName ${{ vars.ONPREM_FE_HOST }}
-            User ubuntu
-            IdentityFile $HOME/.ssh/fe.pem
-            ProxyJump onprem-bastion
-            StrictHostKeyChecking no
-          EOF
-
-      - name: Sync dist to nginx root
-        run: |
-          rsync -az --delete \
-            -e "ssh -F $HOME/.ssh/config" \
-            dist/ \
-            onprem-fe:/var/www/hangang-pay/
-
-      - name: Reload nginx
-        run: ssh -F "$HOME/.ssh/config" onprem-fe 'sudo nginx -s reload'

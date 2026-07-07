@@ -62,8 +62,8 @@ EC2는 `start.sh`가 SSM(`/hangang-pay/be/prod/*`) + IMDS로 자동 생성한다
 
 ## 활성 조건
 
-- **Sentry**: `SENTRY_DSN`이 있을 때만 동작. `prod`/`onprem-test` 프로필에서 `environment`·`traces-sample-rate` 설정. `WARN` 이상 로그가 이벤트로 전송된다.
-- **구조화 로깅(ECS JSON)**: `prod`/`onprem-test` 프로필에서만 활성(`logging.structured.format.console=ecs`). local/dev는 사람이 읽는 기본 포맷 유지.
+- **Sentry**: `SENTRY_DSN`이 있을 때만 동작. `prod` 프로필에서 `environment`·`traces-sample-rate` 설정. `WARN` 이상 로그가 이벤트로 전송된다.
+- **구조화 로깅(ECS JSON)**: `prod` 프로필에서만 활성(`logging.structured.format.console=ecs`). local/dev는 사람이 읽는 기본 포맷 유지.
 - **메트릭**: `/actuator/prometheus` (모든 프로필 노출).
 
 ## 배포 흐름 (EC2 / CodeDeploy)

@@ -6,13 +6,14 @@
 # ============================================================
 name: FE CD Prod
 
-# [비활성화] CI/CD가 돌지 않도록 트리거 전체 주석 처리. 복원 시 아래 on: 블록의 주석만 해제.
-# on:
-#   push:
-#     branches: [prod]               # prod 브랜치 push만
-#     paths:                         # fe 변경 or 이 워크플로 변경 시에만 (모노레포 불필요 실행 방지)
-#       - "hangang-pay-fe/**"
-#       - ".github/workflows/fe-cd-prod.yml"
+# prod 브랜치 push 또는 수동 실행(workflow_dispatch)으로 배포.
+on:
+  workflow_dispatch:
+  push:
+    branches: [prod]               # prod 브랜치 push만
+    paths:                         # fe 변경 or 이 워크플로 변경 시에만 (모노레포 불필요 실행 방지)
+      - "hangang-pay-fe/**"
+      - ".github/workflows/fe-cd-prod.yml"
 
 # OIDC로 AWS 역할 assume → 저장된 액세스키 0개
 permissions:
@@ -48,6 +49,8 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_API_BASE_URL: https://api.hangang-pay.cloud   # API 주소를 빌드에 주입(FE client가 참조)
         run: npm run build                  # tsc -b && vite build → dist/
 
       - name: Configure AWS credentials (OIDC)

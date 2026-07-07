@@ -52,6 +52,6 @@ docker compose up -d                          # app(:8081) + alloy 기동
 
 ## 활성 조건
 
-- **Sentry**: `SENTRY_DSN`이 있을 때만 동작. `prod`/`onprem-test` 프로필에서 `environment`·`traces-sample-rate` 설정, `WARN` 이상 로그가 이벤트로 전송.
-- **구조화 로깅(ECS JSON)**: `prod`/`onprem-test` 프로필에서만 활성. local/dev는 기본 포맷.
+- **Sentry**: `SENTRY_DSN`이 있을 때만 동작. `prod` 프로필에서 `environment`·`traces-sample-rate` 설정, `WARN` 이상 로그가 이벤트로 전송.
+- **구조화 로깅(ECS JSON)**: `prod` 프로필에서만 활성. local/dev는 기본 포맷.
 - **메트릭**: `/actuator/prometheus` 노출(`micrometer-registry-prometheus` 추가).

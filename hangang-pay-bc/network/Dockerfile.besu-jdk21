@@ -1,0 +1,12 @@
+# besu 26.4.0 distribution on Java 21 (Temurin).
+# 이유: besu 26.4.0 이미지가 번들한 JRE는 Java 25인데, Java 25가 qemu(KVM 없는 에뮬레이션) CPU에서
+#       C2 JIT/JFR SIGSEGV로 크래시함. besu는 26.5.0까지 Java 21을 지원하므로(26.6.0부터 JDK25 필수),
+#       같은 besu 26.4.0 distribution을 안정적인 Java 21 위에서 실행 → Bonsai DB 포맷 유지(리셋 불필요).
+# 빌드: docker build -t besu-jdk21:26.4.0 -f Dockerfile.besu-jdk21 .
+# (참고: openstack VM은 nested virt가 없어 qemu TCG 에뮬레이션 → 근본해결은 KVM 활성화)
+FROM hyperledger/besu:26.4.0 AS src
+FROM eclipse-temurin:21-jre-noble
+COPY --from=src /opt/besu /opt/besu
+ENV PATH="/opt/besu/bin:${PATH}"
+WORKDIR /opt/besu
+ENTRYPOINT ["besu"]

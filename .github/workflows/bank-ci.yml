@@ -119,7 +119,7 @@ jobs:
 
           sudo tee "$APP_DIR/.env" >/dev/null <<'ENV'
           APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/hangang-pay-bank:test-latest
-          SPRING_PROFILES_ACTIVE=onprem-test
+          SPRING_PROFILES_ACTIVE=prod
           DB_URL=${{ secrets.ONPREM_BANK_DB_URL }}
           DB_USERNAME=${{ secrets.ONPREM_BANK_DB_USERNAME }}
           DB_PASSWORD=${{ secrets.ONPREM_BANK_DB_PASSWORD }}

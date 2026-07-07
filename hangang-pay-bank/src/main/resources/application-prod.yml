@@ -1,15 +1,29 @@
 spring:
+  datasource:                                # onprem-test에서 이동: on-prem DB(env 주입)
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update                       # fresh 배포라 update. 스키마 안정화 후 validate 권장(기존 prod는 validate였음)
+
+blockchain:                                  # onprem-test에서 이동 + 죽은 강의장 IP 제거(env 주입)
+  rpc-endpoint:
+    bok: ${BOK_RPC_ENDPOINT:http://localhost:18545}
+    wr: ${WR_RPC_ENDPOINT:http://localhost:18545}
+    sh: ${SH_RPC_ENDPOINT:http://localhost:18545}
+    hn: ${HN_RPC_ENDPOINT:http://localhost:18545}
 
 logging:
+  level:
+    family.fisa.hangangpaybank: INFO         # onprem-test는 'family.fisa.hangangpay'(패키지 오타)였어서 교정
   structured:
     format:
-      console: ecs                          # stdout을 ECS JSON으로 → Alloy가 docker 로그로 수집 후 Loki push
+      console: ecs                           # stdout→ECS JSON, Alloy가 수집해 Loki push
 
-# Sentry: 운영 환경 식별 + 성능 트레이싱 샘플링
+# Sentry: 운영/데모 환경 식별 + 성능 트레이싱 샘플링
 sentry:
   environment: prod
-  traces-sample-rate: 0.2
+  traces-sample-rate: 0.2                     # onprem-test는 1.0(전량)이었음 — 실험 전량 추적 원하면 1.0
   release: ${SENTRY_RELEASE:}

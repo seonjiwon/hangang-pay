@@ -1,56 +1,50 @@
 # ============================================================
-# 한강페이 BE 프로덕션 배포 (CD)
-# prod 브랜치 push → 테스트 → ECR 이미지 push → CodeDeploy Blue/Green
-# CI(테스트/빌드 검증)는 be-ci.yml이 dev/test에서 담당, 이 파일은 "배포"만.
+# 한강페이 BE 배포 (CD) — ECR 이미지 빌드 → SSM으로 EC2 pull+restart
+# 수동 실행(workflow_dispatch). CI(테스트/빌드 검증)는 be-ci.yml이 dev에서 담당.
+# 사전 준비:
+#   - GitHub OIDC provider
+#   - BE_AWS_ROLE_ARN 역할: ECR push(예: AmazonEC2ContainerRegistryPowerUser)
+#       + ssm:SendCommand/GetCommandInvocation
+#   - hp-be 인스턴스 역할 hp-ec2-ssm-role: AmazonSSMManagedInstanceCore
+#       + ECR pull(AmazonEC2ContainerRegistryReadOnly)
+#   - hp-be에 aws CLI 설치(ECR 로그인용) + ECR 레포 hangang-pay-be 생성
 # ============================================================
-name: BE CD Prod
+name: BE CD
 
-# [비활성화] CI/CD가 돌지 않도록 트리거 전체 주석 처리. workflow_dispatch(수동 실행)까지 차단.
-# 복원 시 아래 on: 블록의 주석만 해제.
-# on:
-#   push:
-#     branches: [prod]              # prod 브랜치에 push될 때만 동작
-#     paths:                        # be 코드 or 이 워크플로 변경 시에만 트리거(불필요 실행 방지)
-#       - "hangang-pay-be/**"
-#       - ".github/workflows/be-cd-prod.yml"
-#   workflow_dispatch:
+on:
+  workflow_dispatch:
+  # prod 브랜치 push로도 배포하려면 아래 주석 해제
+  # push:
+  #   branches: [prod]
+  #   paths:
+  #     - "hangang-pay-be/**"
+  #     - ".github/workflows/be-cd-prod.yml"
 
-# OIDC로 AWS 역할을 assume하려면 id-token 쓰기 권한 필수.
-# (액세스키를 Secrets에 저장하는 방식 대신, 단기 토큰을 발급받는 방식)
+# OIDC로 AWS 역할 assume → 저장된 액세스키 0개
 permissions:
   id-token: write
-  contents: read                  # 레포 checkout용 읽기 권한
+  contents: read
 
-# prod 배포가 동시에 두 개 돌면 prod-latest 태그가 꼬임 → 한 번에 하나만.
-# cancel-in-progress: false = 진행 중인 배포는 끝까지 두고, 뒤 실행은 대기.
+# 동시 배포 방지: 한 번에 하나만
 concurrency:
-  group: be-cd-prod
+  group: be-cd
   cancel-in-progress: false
 
-# 여러 job/step에서 재사용하는 값. 한 곳에서 관리.
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPO: hangang-pay-be
-  S3_BUCKET: hangang-pay-codedeploy-857291404781-ap-northeast-2-an      # 배포 번들(zip) 보관 버킷
-  CD_APP: hangang-pay-be-codedeploy                   # CodeDeploy 애플리케이션
-  CD_GROUP: hangang-pay-be-dg-prod                    # CodeDeploy 배포 그룹
-  ROLE_ARN: arn:aws:iam::857291404781:role/hangang-pay-github-actions-role
 
 jobs:
   # ----------------------------------------------------------
-  # [1] 테스트 — prod 배포 전 마지막 안전망.
-  # dev/test에서 be-ci가 이미 돌렸다면 중복이므로 이 job 통째로 삭제 가능.
-  # (삭제 시 아래 build-push의 'needs: test'도 같이 제거)
+  # [1] 테스트 — 배포 전 마지막 안전망. (be-ci와 중복이면 이 job 삭제 가능)
   # ----------------------------------------------------------
   test:
     name: Test
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: hangang-pay-be    # 모노레포라 gradle 명령은 be 폴더에서
+        working-directory: hangang-pay-be
     services:
-      # 테스트가 Redis(세션/캐시)에 붙으므로 임시 Redis 컨테이너를 띄움.
-      # localhost:6379로 접근. (운영 Valkey와 무관, 테스트 전용)
       redis:
         image: redis:7-alpine
         ports: ["6379:6379"]
@@ -60,86 +54,102 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0                      # git 이력 필요한 작업 대비 전체 클론
+          fetch-depth: 0
       - uses: actions/setup-java@v5
         with:
           java-version: "17"
           distribution: temurin
-          cache: gradle                       # gradle 의존성 캐싱 → 빌드 속도↑
-      - run: chmod +x ./gradlew               # 실행 권한 보장
+          cache: gradle
+      - run: chmod +x ./gradlew
       - run: ./gradlew test --no-daemon
 
   # ----------------------------------------------------------
-  # [2] 이미지 빌드 → ECR push
+  # [2] 이미지 빌드 → ECR push (latest + commit sha)
   # ----------------------------------------------------------
   build-push:
     name: Build & Push to ECR
-    needs: test                               # test 통과해야 실행
+    needs: test
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v5
 
-      # OIDC: ROLE_ARN을 단기 자격증명으로 assume. 액세스키 저장 불필요.
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ vars.BE_AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # ECR 로그인. outputs.registry = 857291404781.dkr.ecr.ap-northeast-2.amazonaws.com
       - name: Login to ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Dockerfile로 이미지 빌드 후 두 태그로 push.
-      #  - prod-latest : 훅(install.sh)이 항상 이 태그를 pull → "최신 운영본" 포인터
-      #  - github.sha  : 커밋별 추적/롤백용 불변 태그
       - name: Build & push image
         uses: docker/build-push-action@v7
         with:
-          context: hangang-pay-be             # 빌드 컨텍스트 = be 폴더
+          context: hangang-pay-be
           file: hangang-pay-be/Dockerfile
+          platforms: linux/amd64
           push: true
           tags: |
-            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:prod-latest
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:latest
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ github.sha }}
 
+      # 배포 job에 넘길 sha 태그 이미지 URI
+      - name: Export image URI
+        id: meta
+        run: echo "image=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
   # ----------------------------------------------------------
-  # [3] CodeDeploy Blue/Green 배포 트리거
+  # [3] SSM으로 EC2에서 ECR 로그인 → 새 이미지 pull + 컨테이너 교체 (인바운드 SSH 불필요)
   # ----------------------------------------------------------
   deploy:
-    name: CodeDeploy (Blue/Green)
-    needs: build-push                         # 이미지 push 끝나야 배포 (prod-latest 최신화 후 green이 pull)
+    name: Deploy via SSM
+    needs: build-push
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5             # deploy/ 폴더(appspec+scripts)를 zip 떠야 하므로 다시 checkout
-
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ vars.BE_AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # deploy/ 내용물을 zip 루트에 담아 S3 업로드.
-      # cd 후 'zip .' 이므로 zip 안에 appspec.yml/scripts/ 가 최상위로 들어감
-      # (appspec은 반드시 번들 루트에 있어야 CodeDeploy가 인식)
-      - name: Bundle deploy/ and upload to S3
+      - name: Send deploy command via SSM
         run: |
-          cd hangang-pay-be/deploy
-          zip -r /tmp/be-deploy.zip .
-          aws s3 cp /tmp/be-deploy.zip s3://${{ env.S3_BUCKET }}/be/${{ github.sha }}.zip
+          set -euo pipefail
+          IMAGE="${{ needs.build-push.outputs.image }}"
+          INSTANCE="${{ vars.BE_INSTANCE_ID }}"
+          REGION="${{ env.AWS_REGION }}"
+          REGISTRY="${IMAGE%%/*}"   # <acct>.dkr.ecr.<region>.amazonaws.com
 
-      # S3 리비전을 가리키며 배포 생성.
-      #  - create-deployment은 즉시 deploymentId 반환(비동기)
-      #  - aws deploy wait 로 성공/실패까지 폴링 → 워크플로 결과에 배포 성패 반영
-      #  - 실패(헬스체크/롤백) 시 wait가 에러로 끝나 이 step도 실패 처리
-      - name: Create CodeDeploy deployment
-        run: |
-          DEPLOYMENT_ID=$(aws deploy create-deployment \
-            --application-name ${{ env.CD_APP }} \
-            --deployment-group-name ${{ env.CD_GROUP }} \
-            --s3-location bucket=${{ env.S3_BUCKET }},key=be/${{ github.sha }}.zip,bundleType=zip \
-            --description "prod ${{ github.sha }}" \
-            --query deploymentId --output text)
-          echo "Deployment: $DEPLOYMENT_ID"
-          aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID"
+          # EC2에서 실행할 스크립트. base64로 감싸 SSM --parameters 따옴표 이슈를 피한다.
+          # ${IMAGE}/${REGION}/${REGISTRY}만 러너에서 치환, remote 셸 구문(\$(...))은 이스케이프.
+          SCRIPT="set -e
+          aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${REGISTRY}
+          cd /home/ubuntu/hangang-pay/hangang-pay-be/deploy
+          export APP_IMAGE=${IMAGE}
+          docker compose pull app
+          docker compose up -d app
+          for i in \$(seq 1 30); do curl -fsS http://127.0.0.1:8080/actuator/health && exit 0; sleep 5; done
+          echo 'health check timeout'; docker compose logs --tail 100 app; exit 1"
+
+          B64=$(printf '%s' "$SCRIPT" | base64 -w0)
+
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name "AWS-RunShellScript" \
+            --comment "deploy be ${{ github.sha }}" \
+            --parameters "commands=[\"echo $B64 | base64 -d | bash\"]" \
+            --query "Command.CommandId" --output text)
+          echo "SSM CommandId: $CMD_ID"
+
+          aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "$INSTANCE" || true
+
+          STATUS=$(aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE" --query Status --output text)
+          echo "----- STDOUT -----"
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE" --query StandardOutputContent --output text || true
+          echo "----- STDERR -----"
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE" --query StandardErrorContent --output text || true
+          echo "Status: $STATUS"
+          [ "$STATUS" = "Success" ]
