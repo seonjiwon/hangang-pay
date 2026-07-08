@@ -99,16 +99,27 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Wait for bank over tailnet
+      - name: Wait for bank SSH reachable
         run: |
-          # NAT/DERP 첫 연결 지연 흡수: bank 노드가 tailnet에서 잡힐 때까지 대기(최대 60s)
+          # bank가 DERP relay 경유일 수 있어 tailscale ping은 false negative가 잦다.
+          # 실제로 필요한 SSH 접속을 재시도로 확인(첫 DERP 세션 warmup 흡수, 최대 ~90s).
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.BANK_SSH_KEY }}" > ~/.ssh/bank_key
+          chmod 600 ~/.ssh/bank_key
           for i in $(seq 1 30); do
-            if timeout 5 tailscale ping -c 1 "${{ vars.BANK_HOST }}" >/dev/null 2>&1; then
-              echo "bank reachable over tailnet"; exit 0
+            if ssh -i ~/.ssh/bank_key \
+                 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                 -o ConnectTimeout=10 -o BatchMode=yes \
+                 "${{ vars.BANK_SSH_USER }}@${{ vars.BANK_HOST }}" true 2>/dev/null; then
+              echo "bank SSH reachable"; exit 0
             fi
-            echo "waiting for bank tailnet route... ($i/30)"; sleep 2
+            echo "waiting for bank SSH... ($i/30)"; sleep 3
           done
-          echo "bank NOT reachable over tailnet"; tailscale status || true; exit 1
+          echo "bank NOT reachable over tailnet after retries"
+          echo "--- 진단: tailscale ping (경로 확인) ---"; tailscale ping -c 3 "${{ vars.BANK_HOST }}" || true
+          echo "--- 진단: tailscale netcheck ---"; tailscale netcheck || true
+          tailscale status || true
+          exit 1
 
       - name: Deploy to bank over SSH
         run: |
