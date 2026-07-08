@@ -84,7 +84,7 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
             return PaymentIntentResponse.from(live.get(), merchant, intentExpiresAt(live.get()));
         }
 
-        /** 결제 실행 전에 서버 발급 transactionUuid로 PENDING 결제 의도를 생성한다 */
+        // 2. fingerprint(누가 -> 누구에게 -> 얼마) 계산 + 신규 uuid 발급 후 Redis에 30초 선점 예약
         String fingerprint =
                 paymentRequestHashGenerator.generateIntentExecutionHash(
                         userParty.getId(), merchant.getParty().getId(), request.amount());
@@ -92,6 +92,7 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
         Optional<String> existingTransactionUuid =
                 paymentIntentDedupStore.reserve(fingerprint, transactionUuid);
 
+        // 3. 이미 선점돼 있으면(동시/연속 중복 요청) 그 uuid의 기존 거래를 그대로 반환 = dedup 히트
         if (existingTransactionUuid.isPresent()) {
             Optional<Transaction> existing =
                     transactionRepository.findByTransactionUuid(existingTransactionUuid.get());
@@ -102,6 +103,7 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
             }
         }
 
+        // 4. 신규 요청이면 PENDING 결제 의도를 저장하고 반환
         Transaction transaction =
                 Transaction.forPayment(
                         transactionUuid,

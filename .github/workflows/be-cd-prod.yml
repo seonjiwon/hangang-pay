@@ -128,8 +128,8 @@ jobs:
           aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${REGISTRY}
           cd /home/ubuntu/hangang-pay/hangang-pay-be/deploy
           export APP_IMAGE=${IMAGE}
-          docker compose pull app
-          docker compose up -d app
+          docker compose pull
+          docker compose up -d
           docker image prune -af --filter 'until=48h' || true
           for i in \$(seq 1 30); do curl -fsS http://127.0.0.1:8080/actuator/health && exit 0; sleep 5; done
           echo 'health check timeout'; docker compose logs --tail 100 app; exit 1"

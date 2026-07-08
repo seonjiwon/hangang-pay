@@ -27,6 +27,10 @@ public class PaymentRequestHashGenerator {
                 normalizedAmount);
     }
 
+    /**
+     * 결제 intent dedup용 fingerprint. execute 해시({@link #generatePaymentExecuteHash})와 같은 재료
+     * (송신자·수신자·금액)를, 거래 저장 전 request 파라미터로 미리 계산해 Redis 선점 키로 쓴다.
+     */
     public String generateIntentExecutionHash(Long fromPartyId, Long toPartyId, BigDecimal amount) {
         String normalizedAmount = amount.stripTrailingZeros().toPlainString();
 

@@ -52,8 +52,11 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
             throw new BusinessException(UserErrorCode.INVALID_PIN_NUMBER);
         }
 
+        // 1. 저장된 PENDING 거래(from -> to -> amount)로 execute 요청 해시를 재계산한다.
         String requestHash = paymentRequestHashGenerator.generatePaymentExecuteHash(transaction);
 
+        // 2. (transactionUuid, requestHash)로 멱등 begin -> 첫 요청이면 선점, 재요청이면 저장된 record와 대조.
+        //    실제 해시 일치 검사는 AbstractRedisIdempotencyStore.begin (같은 uuid + 다른 requestHash -> CONFLICT).
         IdempotencyDecision<PaymentExecuteResponse> decision =
                 paymentIdempotencyStore.beginExecution(
                         new IdempotencyKey(transactionUuid, requestHash), transaction.getId());
@@ -62,6 +65,7 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
             return PaymentExecutionPreparationResult.snapshot(decision.responseSnapshot());
         }
 
+        // 3. 같은 uuid인데 requestHash가 다르면 = 내용(누가/누구/얼마) 불일치 -> 조작 감지로 거절.
         if (decision.type() == IdempotencyDecisionType.CONFLICT) {
             throw new BusinessException(TransactionErrorCode.IDEMPOTENCY_CONFLICT);
         }
