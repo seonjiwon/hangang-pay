@@ -64,8 +64,9 @@ export default function () {
   }
 
   // 5. 충전 intent 생성 -> 요청 해시 계산 지점.
-  //    금액을 매 반복 다르게 줘서 IntentCreationGuard(같은 partyId+금액 3초 중복차단)에 막히지 않게 한다.
-  const amount = 1000 + __ITER; // __ITER는 VU별 반복 카운터 -> VU 안에서 항상 유일
+  //    IntentCreationGuard(txType+partyId+amount+accountId 3초 중복차단)에 안 걸리게 금액을 유일하게 만든다.
+  //    시드 유저가 하나(=partyId 하나)라도 __VU까지 섞어 전역 유일하게. (유저 여러 명이면 이 트릭 불필요)
+  const amount = 1000 + __VU * 1000000 + __ITER;
 
   const res = http.post(
     `${BASE_URL}${ENDPOINTS.chargeIntents}`,

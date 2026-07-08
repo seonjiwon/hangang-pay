@@ -19,5 +19,12 @@ export function loginUser(user) {
   // 2. 200 확인 (실패하면 시드 계정이 없거나 BASE_URL/비밀번호가 틀린 것)
   check(res, { '로그인 200': (r) => r.status === 200 });
 
+  // 3. 세션 쿠키(SESSION)는 서버가 Secure로 내린다(운영 프로파일). k6는 plain http라
+  //    Secure 쿠키를 자동 재요청에 안 실어준다 -> 값을 꺼내 jar에 non-secure로 다시 심어 이후 요청에 실리게 한다.
+  const session = res.cookies['SESSION'];
+  if (session && session.length > 0) {
+    http.cookieJar().set(BASE_URL, 'SESSION', session[0].value);
+  }
+
   return res;
 }
