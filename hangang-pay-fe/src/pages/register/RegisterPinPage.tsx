@@ -10,7 +10,6 @@ export function RegisterPinPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const isMerchant = location.pathname.startsWith('/merchant/')
-  const steps = isMerchant ? 8 : 7
   const state = location.state as Record<string, unknown> | null
 
   const [step, setStep] = useState<Step>('enter')
@@ -49,13 +48,12 @@ export function RegisterPinPage() {
       setConfirmPin('')
       setErrorMessage('')
     } else {
-      const backPath = isMerchant ? '/merchant/register/account' : '/register/account'
+      const backPath = isMerchant ? '/merchant/register/form' : '/register'
       navigate(backPath, { state })
     }
   }
 
   const currentPin = step === 'enter' ? firstPin : confirmPin
-  const stepIndex = step === 'enter' ? (isMerchant ? 6 : 5) : isMerchant ? 7 : 6
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -83,15 +81,6 @@ export function RegisterPinPage() {
           <h1 className="text-2xl font-bold text-foreground">
             {isMerchant ? '가맹점 회원가입' : '사용자 회원가입'}
           </h1>
-        </div>
-
-        <div className="mb-2 flex gap-1">
-          {Array.from({ length: steps }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full ${i < stepIndex ? 'bg-primary' : 'bg-muted'}`}
-            />
-          ))}
         </div>
       </div>
 

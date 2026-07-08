@@ -9,7 +9,7 @@ flowchart TD
   root["family.fisa.hangangpay"]
   root --> domain["domain"]
   root --> global["global"]
-  root --> auth["auth<br/>세션 인증, 로그인/로그아웃, 회원가입, SMS/계좌 인증"]
+  root --> auth["auth<br/>세션 인증, 로그인/로그아웃, 회원가입"]
   root --> client["client<br/>외부 시스템 연동"]
 
   domain --> party["party<br/>USER | MERCHANT 공통 상위 식별자"]
@@ -105,7 +105,7 @@ transaction/
 | `wallet` | 소비자와 가맹점의 서비스 월렛 |
 | `institution` | BE에서 참조하는 기관 목록과 기관 코드/식별자 조회 |
 | `transaction` | 충전, 환전, 결제, 결제 취소와 블록체인/은행 거래 식별자 |
-| `auth` | 세션 인증, 로그인, 로그아웃, 회원가입, SMS/계좌 인증 |
+| `auth` | 세션 인증, 로그인, 로그아웃, 회원가입 |
 | `client/bank` | `hangang-pay-bank` API 호출과 은행 API 요청/응답 DTO |
 
 ## Placement Rules

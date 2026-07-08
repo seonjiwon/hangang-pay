@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 class ChargeRequestHashGeneratorTest {
 
     private final ChargeRequestHashGenerator generator =
-            new ChargeRequestHashGenerator(new RequestHashDigest());
+            new ChargeRequestHashGenerator(new RequestHashDigest(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
 
     @Test
     @DisplayName("같은 충전 의도는 같은 해시를 만든다")

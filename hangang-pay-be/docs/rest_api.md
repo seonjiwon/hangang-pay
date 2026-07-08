@@ -127,20 +127,14 @@ DB intent가 게이트보다 먼저 커밋되므로 실행 중 어디서 실패�
 | `AUTH-005` | 보류 | 비밀번호 재설정 |
 | `WALLET-002` | 장기 보류 | 근처 가맹점 조회. 구현 복잡도 |
 
-SMS 인증과 계좌 1원 인증은 mock으로 처리한다. 백엔드는 인증 코드를 생성해 세션에 저장하고 로그로 출력한다.
-
 ## API Catalog
 
 | ID | Name | Method | Path | Auth | Role | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `AUTH-001` | SMS 인증번호 발송 | `POST` | `/auth/sms/send` | `X` | `PUBLIC` | mock 인증 코드를 로그로 출력 |
-| `AUTH-002` | SMS 인증번호 검증 | `POST` | `/auth/sms/verify` | `X` | `PUBLIC` | 회원가입 인증 상태를 세션에 저장 |
-| `AUTH-003` | 계좌 1원 인증 발송 | `POST` | `/auth/account/send` | `X` | `PUBLIC` | mock 인증 코드를 로그로 출력 |
-| `AUTH-004` | 계좌 1원 인증 검증 | `POST` | `/auth/account/verify` | `X` | `PUBLIC` | 회원가입 인증 상태를 세션에 저장 |
 | `LOGIN-001` | 로그인 (소비자) | `POST` | `/auth/users/login` | `X` | `PUBLIC` | 세션 생성 |
 | `LOGIN-002` | 로그인 (가맹점) | `POST` | `/auth/merchants/login` | `X` | `PUBLIC` | 세션 생성 |
 | `LOGOUT-001` | 로그아웃 | `POST` | `/auth/logout` | `O` | `USER \| MERCHANT` | 현재 세션 삭제 |
-| `REG-001` | 소비자 회원가입 | `POST` | `/auth/users/register` | `X` | `PUBLIC` | 휴대폰·계좌 인증 세션 확인 후 회원/주계좌/지갑 생성 |
+| `REG-001` | 소비자 회원가입 | `POST` | `/auth/users/register` | `X` | `PUBLIC` | 회원/주계좌/지갑 생성 |
 | `REG-002` | 사업자 정보 조회 | `GET` | `/auth/merchants/business-info` | `X` | `PUBLIC` | 쿼리 파라미터: `businessNumber` |
 | `REG-003` | 가맹점 회원가입 | `POST` | `/auth/merchants/register` | `X` | `PUBLIC` | |
 | `ACCOUNT-001` | 등록 계좌 목록 조회 | `GET` | `/accounts` | `O` | `USER \| MERCHANT` | 현재 세션의 `partyId` 기준 |

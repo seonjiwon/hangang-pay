@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class ExchangeRequestHashGeneratorTest {
 
     private final ExchangeRequestHashGenerator generator =
-            new ExchangeRequestHashGenerator(new RequestHashDigest());
+            new ExchangeRequestHashGenerator(new RequestHashDigest(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
 
     @Test
     @DisplayName("같은 요청자+uuid는 같은 해시를 만든다")

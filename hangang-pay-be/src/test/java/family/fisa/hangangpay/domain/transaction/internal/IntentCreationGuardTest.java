@@ -30,7 +30,7 @@ class IntentCreationGuardTest {
     @Mock StringRedisTemplate redisTemplate;
     @Mock ValueOperations<String, String> valueOps;
 
-    private final RequestHashDigest digest = new RequestHashDigest();
+    private final RequestHashDigest digest = new RequestHashDigest(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     private IntentCreationGuard guard;
 
     private static final Long PARTY_ID = 10L;

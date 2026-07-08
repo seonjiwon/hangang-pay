@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 class PaymentRequestHashGeneratorTest {
 
     private final PaymentRequestHashGenerator generator =
-            new PaymentRequestHashGenerator(new RequestHashDigest());
+            new PaymentRequestHashGenerator(new RequestHashDigest(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
 
     // 1. 결제는 저장된 거래(fromParty/toParty/amount)로 해시하므로 Transaction을 구성해 검증한다
     private Transaction payment(Long fromPartyId, Long toPartyId, String amount) {

@@ -96,30 +96,23 @@ const FLOWS: Record<string, FlowConfig> = {
   '/register/processing': {
     title: '회원가입을 처리하고 있어요',
     completePath: '/register/complete',
-    errorPath: '/register/account',
+    errorPath: '/register',
     defaultError: '회원가입 처리 중 오류가 발생했습니다.',
     run: (state) =>
       registerUser({
         name: state.name as string,
-        birthDate: `${(state.birthDate as string).slice(0, 4)}-${(state.birthDate as string).slice(4, 6)}-${(state.birthDate as string).slice(6, 8)}`,
         phoneNumber: state.phoneNumber as string,
         password: state.password as string,
         paymentPin: state.paymentPin as string,
         institutionId: state.institutionId as number,
         accountNumber: state.accountNumber as string,
-        termsAgreed: state.termsAgreed as {
-          serviceTerms: boolean
-          privacyTerms: boolean
-          electronicFinanceTerms: boolean
-          localCurrencyTerms: boolean
-        },
       }),
     buildErrorState: (state, message) => ({ ...state, error: message }),
   },
   '/merchant/register/processing': {
     title: '회원가입을 처리하고 있어요',
     completePath: '/merchant/register/complete',
-    errorPath: '/merchant/register/account',
+    errorPath: '/merchant/register/form',
     defaultError: '회원가입 처리 중 오류가 발생했습니다.',
     run: (state) =>
       registerMerchant({
@@ -130,12 +123,6 @@ const FLOWS: Record<string, FlowConfig> = {
         institutionId: state.institutionId as number,
         accountNumber: state.accountNumber as string,
         phoneNumber: state.phoneNumber as string,
-        termsAgreed: state.termsAgreed as {
-          serviceTerms: boolean
-          privacyTerms: boolean
-          electronicFinanceTerms: boolean
-          localCurrencyTerms: boolean
-        },
       }),
     buildErrorState: (state, message) => ({ ...state, error: message }),
   },

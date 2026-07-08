@@ -21,15 +21,6 @@ interface PrimaryAccountResponse {
   accountId: number
 }
 
-interface VerificationCodeResponse {
-  code: string
-}
-
-interface AccountVerificationPayload {
-  institutionId: number
-  accountNumber: string
-}
-
 export async function fetchAccounts(): Promise<RegisteredAccount[]> {
   const response = await apiFetch<AccountListResponse>('/accounts')
 
@@ -52,23 +43,5 @@ export async function deleteAccount(accountId: number): Promise<void> {
 export async function setPrimaryAccount(accountId: number): Promise<PrimaryAccountResponse> {
   return apiFetch<PrimaryAccountResponse>(`/accounts/${accountId}/primary`, {
     method: 'PATCH',
-  })
-}
-
-export function requestAccountVerification(
-  payload: AccountVerificationPayload
-): Promise<VerificationCodeResponse> {
-  return apiFetch<VerificationCodeResponse>('/auth/account/send', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-}
-
-export function verifyAccount(
-  payload: AccountVerificationPayload & { code: string }
-): Promise<void> {
-  return apiFetch<void>('/auth/account/verify', {
-    method: 'POST',
-    body: JSON.stringify(payload),
   })
 }
