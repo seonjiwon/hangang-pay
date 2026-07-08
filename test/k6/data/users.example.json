@@ -1,0 +1,5 @@
+[
+  { "phoneNumber": "01000000001", "password": "test1234!", "institutionId": 2, "accountId": 1 },
+  { "phoneNumber": "01000000002", "password": "test1234!", "institutionId": 2, "accountId": 2 },
+  { "phoneNumber": "01000000003", "password": "test1234!", "institutionId": 2, "accountId": 3 }
+]
