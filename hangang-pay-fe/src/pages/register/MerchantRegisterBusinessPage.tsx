@@ -12,8 +12,6 @@ import {
   type ToastState,
 } from '@/components/common'
 
-const STEPS = 8
-
 function stripHyphens(value: string) {
   return value.replace(/-/g, '')
 }
@@ -59,7 +57,7 @@ export function MerchantRegisterBusinessPage() {
 
   function handleNext() {
     if (!verified) return
-    navigate('/merchant/register/account', {
+    navigate('/merchant/register/form', {
       state: { ...state, businessNumber: stripHyphens(businessNumber) },
     })
   }
@@ -74,19 +72,7 @@ export function MerchantRegisterBusinessPage() {
   return (
     <AppShell>
       <div className="flex h-full flex-col">
-        <BackTitleHeader
-          title="가맹점 회원가입"
-          onBack={() => navigate('/merchant/register/password', { state })}
-        />
-
-        <div className="mb-4 flex gap-1">
-          {Array.from({ length: STEPS }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full ${i < 4 ? 'bg-primary' : 'bg-muted'}`}
-            />
-          ))}
-        </div>
+        <BackTitleHeader title="가맹점 회원가입" onBack={() => navigate('/')} />
 
         <div className="flex-1 overflow-y-auto">
           <div className="mb-6">

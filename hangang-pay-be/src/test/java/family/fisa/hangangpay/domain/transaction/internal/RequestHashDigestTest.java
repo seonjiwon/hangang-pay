@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 @DisplayName("RequestHashDigest - 공유 해시 메커니즘")
 class RequestHashDigestTest {
 
-    private final RequestHashDigest digest = new RequestHashDigest();
+    private final RequestHashDigest digest = new RequestHashDigest(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
 
     @Test
     @DisplayName("같은 입력은 항상 같은 해시를 만든다 (결정성)")

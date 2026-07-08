@@ -156,9 +156,7 @@ export function LoginPage() {
             계정이 없으신가요?{' '}
             <button
               type="button"
-              onClick={() =>
-                navigate(tab == 'user' ? '/register/terms' : '/merchant/register/terms')
-              }
+              onClick={() => navigate(tab == 'user' ? '/register' : '/merchant/register/business')}
               className="font-semibold text-primary"
             >
               회원가입

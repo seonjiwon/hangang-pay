@@ -13,7 +13,6 @@ import family.fisa.hangangpay.global.code.success.GeneralSuccessCode;
 import family.fisa.hangangpay.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,11 +34,11 @@ public class RegistrationController {
     private final MerchantRegistrationService merchantRegistrationService;
     private final BusinessInfoQueryService businessInfoQueryService;
 
-    @Operation(summary = "소비자 회원가입 (REG-001)", description = "인증된 휴대폰과 계좌 정보로 소비자 회원가입을 완료한다.")
+    @Operation(summary = "소비자 회원가입 (REG-001)", description = "휴대폰과 계좌 정보로 소비자 회원가입을 완료한다.")
     @PostMapping("/users/register")
     public ResponseEntity<ApiResponse<UserRegisterResponse>> registerUser(
-            @Valid @RequestBody UserRegisterRequest request, HttpSession session) {
-        UserRegisterResponse response = userRegistrationService.register(request, session);
+            @Valid @RequestBody UserRegisterRequest request) {
+        UserRegisterResponse response = userRegistrationService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.onSuccess(AuthSuccessCode.USER_REGISTERED, response));
     }
@@ -52,11 +51,11 @@ public class RegistrationController {
         return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.COMMON_OK, response));
     }
 
-    @Operation(summary = "가맹점 회원가입 (REG-003)", description = "인증된 계좌 정보와 사업자번호로 가맹점 회원가입을 완료한다.")
+    @Operation(summary = "가맹점 회원가입 (REG-003)", description = "계좌 정보와 사업자번호로 가맹점 회원가입을 완료한다.")
     @PostMapping("/merchants/register")
     public ResponseEntity<ApiResponse<MerchantRegisterResponse>> registerMerchant(
-            @Valid @RequestBody MerchantRegisterRequest request, HttpSession session) {
-        MerchantRegisterResponse response = merchantRegistrationService.register(request, session);
+            @Valid @RequestBody MerchantRegisterRequest request) {
+        MerchantRegisterResponse response = merchantRegistrationService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.onSuccess(AuthSuccessCode.MERCHANT_REGISTERED, response));
     }

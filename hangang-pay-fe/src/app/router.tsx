@@ -11,10 +11,7 @@ import { useCurrentUser } from '@/auth/useCurrentUser'
 import { FullscreenLayout, MainLayout } from '@/routes/layouts'
 import { RequireAuth, RequireRole, RedirectIfAuth } from '@/routes/guards'
 import { LoginPage } from '@/pages/auth/LoginPage'
-import { RegisterTermsPage } from '@/pages/register/RegisterTermsPage'
-import { RegisterVerifyPage } from '@/pages/register/RegisterVerifyPage'
-import { RegisterPasswordPage } from '@/pages/register/RegisterPasswordPage'
-import { RegisterAccountPage } from '@/pages/register/RegisterAccountPage'
+import { RegisterFormPage } from '@/pages/register/RegisterFormPage'
 import { RegisterPinPage } from '@/pages/register/RegisterPinPage'
 import { MerchantRegisterBusinessPage } from '@/pages/register/MerchantRegisterBusinessPage'
 import { UserHomePage } from '@/pages/user/UserHomePage'
@@ -89,18 +86,12 @@ export const router = createBrowserRouter([
     element: <RedirectIfAuth />,
     children: [
       { path: '/login', element: <LoginPage /> },
-      { path: '/register/terms', element: <RegisterTermsPage /> },
-      { path: '/register/verify', element: <RegisterVerifyPage /> },
-      { path: '/register/password', element: <RegisterPasswordPage /> },
-      { path: '/register/account', element: <RegisterAccountPage /> },
+      { path: '/register', element: <RegisterFormPage /> },
       { path: '/register/pin', element: <RegisterPinPage /> },
       { path: '/register/processing', element: <ProcessingPage /> },
       { path: '/register/complete', element: <CompletePage /> },
-      { path: '/merchant/register/terms', element: <RegisterTermsPage /> },
-      { path: '/merchant/register/verify', element: <RegisterVerifyPage /> },
-      { path: '/merchant/register/password', element: <RegisterPasswordPage /> },
       { path: '/merchant/register/business', element: <MerchantRegisterBusinessPage /> },
-      { path: '/merchant/register/account', element: <RegisterAccountPage /> },
+      { path: '/merchant/register/form', element: <RegisterFormPage /> },
       { path: '/merchant/register/pin', element: <RegisterPinPage /> },
       { path: '/merchant/register/processing', element: <ProcessingPage /> },
       { path: '/merchant/register/complete', element: <CompletePage /> },

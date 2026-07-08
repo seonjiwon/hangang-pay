@@ -168,14 +168,14 @@ export function LandingPage() {
           size="lg"
           variant="secondary"
           className="border border-primary/20 bg-card text-primary hover:bg-accent"
-          onClick={() => navigate('/register/terms')}
+          onClick={() => navigate('/register')}
         >
           사용자 회원가입
         </Button>
         <button
           type="button"
           className="py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          onClick={() => navigate('/merchant/register/terms')}
+          onClick={() => navigate('/merchant/register/business')}
         >
           기맹점 회원가입
         </button>

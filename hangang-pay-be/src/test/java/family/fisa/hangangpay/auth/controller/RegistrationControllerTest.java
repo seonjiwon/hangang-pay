@@ -17,7 +17,6 @@ import family.fisa.hangangpay.domain.merchant.dto.response.BusinessInfoResponse;
 import family.fisa.hangangpay.domain.merchant.dto.response.MerchantRegisterResponse;
 import family.fisa.hangangpay.global.exception.BusinessException;
 import family.fisa.hangangpay.global.exception.handler.GlobalExceptionHandler;
-import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +41,7 @@ class RegistrationControllerTest {
     @Test
     @DisplayName("소비자 회원가입을 완료한다")
     void registerUser() throws Exception {
-        given(userRegistrationService.register(any(), any(HttpSession.class)))
+        given(userRegistrationService.register(any()))
                 .willReturn(new UserRegisterResponse(10L, 20L));
 
         mockMvc.perform(
@@ -52,18 +51,11 @@ class RegistrationControllerTest {
                                         """
                     {
                       "name": "홍길동",
-                      "birthDate": "1990-07-30",
                       "phoneNumber": "010-1234-5678",
                       "password": "abc123!@",
                       "paymentPin": "123456",
                       "institutionId": 1,
-                      "accountNumber": "1002123456789",
-                      "termsAgreed": {
-                        "serviceTerms": true,
-                        "privacyTerms": true,
-                        "electronicFinanceTerms": true,
-                        "localCurrencyTerms": true
-                      }
+                      "accountNumber": "1002123456789"
                     }
                     """))
                 .andExpect(status().isCreated())
@@ -109,7 +101,7 @@ class RegistrationControllerTest {
     @Test
     @DisplayName("가맹점 회원가입을 완료한다")
     void registerMerchant() throws Exception {
-        given(merchantRegistrationService.register(any(), any(HttpSession.class)))
+        given(merchantRegistrationService.register(any()))
                 .willReturn(new MerchantRegisterResponse(1L, 2L, "성수 한강카페"));
 
         mockMvc.perform(
@@ -124,13 +116,7 @@ class RegistrationControllerTest {
                       "paymentPin": "123456",
                       "institutionId": 1,
                       "accountNumber": "1002123456789",
-                      "phoneNumber": "01012345678",
-                      "termsAgreed": {
-                        "serviceTerms": true,
-                        "privacyTerms": true,
-                        "electronicFinanceTerms": true,
-                        "localCurrencyTerms": true
-                      }
+                      "phoneNumber": "01012345678"
                     }
                     """))
                 .andExpect(status().isCreated())

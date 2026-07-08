@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class CancelRequestHashGeneratorTest {
 
     private final CancelRequestHashGenerator generator =
-            new CancelRequestHashGenerator(new RequestHashDigest());
+            new CancelRequestHashGenerator(new RequestHashDigest(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
 
     @Test
     @DisplayName("같은 원본결제+가맹점은 같은 해시를 만든다")
