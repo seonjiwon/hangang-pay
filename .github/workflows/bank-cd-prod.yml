@@ -2,9 +2,12 @@
 # 한강페이 BANK 배포 (CD) — Docker Hub 이미지 빌드 → Tailscale 조인 → on-prem SSH pull+restart
 # 수동 실행(workflow_dispatch). bank는 개인 OpenStack(NAT/Tailscale 뒤)이라 be의 SSM/ECR 대신
 # GitHub 러너를 tailnet에 임시 조인시켜 bank(100.83.33.81)로 직접 SSH 배포한다.
-# 사전 준비(Secrets): DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, TS_AUTHKEY(Tailscale ephemeral authkey),
+# 사전 준비(Secrets): DOCKERHUB_USERNAME, DOCKERHUB_TOKEN,
+#                     TS_OAUTH_CLIENT_ID + TS_OAUTH_SECRET(Tailscale OAuth 클라이언트, auth_keys 쓰기 스코프 + tag:ci),
 #                     BANK_SSH_KEY(bank 인스턴스 SSH 개인키)
 # 사전 준비(Variables): BANK_HOST=100.83.33.81, BANK_SSH_USER=ubuntu
+# 사전 준비(Tailscale 콘솔): ACL tagOwners에 tag:ci 등록, ACL에서 tag:ci -> BANK_HOST tcp:22 허용
+# (OAuth 클라이언트는 auth key와 달리 만료되지 않고, 매 실행 ephemeral 키를 자동 발급한다.)
 # bank Docker Hub 레포는 public 이어야 로그인 없이 pull(비공개면 원격 스크립트에 docker login 추가).
 # ============================================================
 name: BANK CD
@@ -91,9 +94,21 @@ jobs:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
-          authkey: ${{ secrets.TS_AUTHKEY }}
-          # authkey에 태그가 걸려 있으면 아래 주석 해제해서 태그 지정
-          # tags: tag:ci
+          # OAuth 클라이언트: 만료 없음 + 매 실행 ephemeral 키 자동 발급. tags 필수(노드가 tag:ci로 태깅됨).
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Wait for bank over tailnet
+        run: |
+          # NAT/DERP 첫 연결 지연 흡수: bank 노드가 tailnet에서 잡힐 때까지 대기(최대 60s)
+          for i in $(seq 1 30); do
+            if timeout 5 tailscale ping -c 1 "${{ vars.BANK_HOST }}" >/dev/null 2>&1; then
+              echo "bank reachable over tailnet"; exit 0
+            fi
+            echo "waiting for bank tailnet route... ($i/30)"; sleep 2
+          done
+          echo "bank NOT reachable over tailnet"; tailscale status || true; exit 1
 
       - name: Deploy to bank over SSH
         run: |
@@ -117,5 +132,6 @@ jobs:
 
           ssh -i ~/.ssh/bank_key \
             -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
             "${{ vars.BANK_SSH_USER }}@${{ vars.BANK_HOST }}" \
             bash -s <<< "$REMOTE_SCRIPT"

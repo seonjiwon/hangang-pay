@@ -160,13 +160,13 @@
         {
           "refId": "B",
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "process_cpu_usage",
+          "expr": "process_cpu_usage{service=\"hangang-pay-be\"}",
           "legendFormat": "JVM process_cpu_usage"
         },
         {
           "refId": "C",
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "system_cpu_usage",
+          "expr": "system_cpu_usage{service=\"hangang-pay-be\"}",
           "legendFormat": "system_cpu_usage"
         }
       ]
