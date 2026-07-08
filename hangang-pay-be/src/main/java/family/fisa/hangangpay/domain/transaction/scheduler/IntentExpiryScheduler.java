@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * TTL 지난 PENDING intent를 EXPIRED 처리하는 스케줄러.
@@ -32,6 +33,7 @@ public class IntentExpiryScheduler {
     /** TTL 지난 PENDING 결제 intent를 조건부 UPDATE로 일괄 EXPIRED 처리 */
     @Scheduled(cron = "0 * * * * *")
     @SchedulerLock(name = "expireStalePaymentIntents", lockAtMostFor = "5m", lockAtLeastFor = "5s")
+    @Transactional // 벌크 @Modifying UPDATE(expireStalePendingIntents)는 실제 트랜잭션이 필요
     public void expirePaymentIntents() {
         LocalDateTime now = LocalDateTime.now();
         int expired =

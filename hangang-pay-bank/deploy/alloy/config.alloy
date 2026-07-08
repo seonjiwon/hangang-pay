@@ -98,7 +98,7 @@ loki.source.docker "app" {
 loki.process "app" {
   stage.json {
     expressions = {
-      level = "\"log.level\"",
+      level = "log.level",
     }
   }
   stage.labels {
