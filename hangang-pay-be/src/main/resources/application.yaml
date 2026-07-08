@@ -2,6 +2,12 @@ spring:
   application:
     name: hangang-pay
 
+# Tomcat 스레드 메트릭(tomcat_threads_*) 노출 — Micrometer가 MBean 기반으로 수집(스레드 포화 관측)
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
 # Swagger (SpringDoc) : /swagger-ui/index.html
 springdoc:
   swagger-ui:

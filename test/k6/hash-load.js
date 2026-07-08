@@ -34,13 +34,17 @@ export const options = {
   scenarios: {
     hash: {
       executor: 'ramping-arrival-rate',
-      startRate: 100, // 초당 100건에서 시작
+      startRate: 10, // 초당 10건에서 시작
       timeUnit: '1s', // rate 단위 = 초당
       preAllocatedVUs: 50, // 요청 처리용 VU 풀 미리 확보
       maxVUs: 200, // 서버가 느리면 여기까지 늘려 목표 도착률 유지
+      // t3.small + 단일 시드유저는 500rps에서 DB커넥션/스레드로 포화됨(해시 아님).
+      // 서버가 안 터지는 구간에서 재측정 -> step으로 올려 포화점을 찾는다.
+      // 각 구간에서 http_req_failed가 ~0이면 건강, 오르기 시작하면 그 rps가 포화점.
       stages: [
-        { target: 200, duration: '1m' }, // 100 -> 200 rps 램프업 (JIT 예열)
-        { target: 500, duration: '2m' }, // 500 rps 고정 유지 <- 이 구간을 Grafana로 관찰
+        { target: 30, duration: '1m' }, // 30 rps (워밍업 + 건강 구간)
+        { target: 60, duration: '1m' }, // 60 rps
+        { target: 100, duration: '1m' }, // 100 rps (여기서 실패율 오르면 포화 시작)
         { target: 0, duration: '30s' }, // 감소
       ],
     },
