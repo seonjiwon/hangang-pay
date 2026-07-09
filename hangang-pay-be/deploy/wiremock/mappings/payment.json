@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/v1/transactions/payment"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"isSuccess\":true,\"status\":\"OK\",\"code\":\"PAYMENT_EXECUTED\",\"message\":\"OK\",\"result\":{\"transactionUuid\":\"{{jsonPath request.body '$.transactionUuid'}}\",\"status\":\"SUCCESS\",\"confirmedAt\":\"2026-01-01T00:00:00\",\"fromBalance\":\"9999.50\",\"toBalance\":\"11000.50\"}}"
+  }
+}

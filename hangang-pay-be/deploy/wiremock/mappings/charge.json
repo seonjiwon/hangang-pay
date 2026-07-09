@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/v1/transactions/charge"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"isSuccess\":true,\"status\":\"OK\",\"code\":\"CHARGE_COMPLETED\",\"message\":\"OK\",\"result\":{\"transactionUuid\":\"{{jsonPath request.body '$.transactionUuid'}}\",\"bankTransactionId\":123456,\"txHash\":\"0xstub\",\"blockNumber\":1001,\"confirmedAt\":\"2026-01-01T00:00:00\",\"walletBalance\":\"10999.50\"}}"
+  }
+}

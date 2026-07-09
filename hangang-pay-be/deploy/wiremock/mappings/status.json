@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/api/v1/transactions/[^/]+/(payment|charge)/status"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"isSuccess\":true,\"status\":\"OK\",\"code\":\"COMMON_OK\",\"message\":\"OK\",\"result\":{\"status\":\"SUCCESS\",\"txHash\":\"0xstub\",\"bankTransactionId\":123456,\"confirmedAt\":\"2026-01-01T00:00:00\"}}"
+  }
+}

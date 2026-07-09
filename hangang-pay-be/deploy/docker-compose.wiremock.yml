@@ -1,0 +1,20 @@
+# 부하 테스트용 오버레이 — bank(besu/온프렘) 호출을 WireMock으로 컷오프한다.
+# app은 compose 네트워크에서 wiremock 을 서비스명으로 호출한다(wiremock:8080).
+#
+# 켜기:  docker compose -f docker-compose.yml -f docker-compose.wiremock.yml up -d
+#        + .env 의 BANK_BASE_URL=http://wiremock:8080 로 바꾸고 app 재기동
+# 끄기:  .env 의 BANK_BASE_URL 을 실제 bank(Tailscale IP)로 되돌리고
+#        docker compose -f docker-compose.yml -f docker-compose.wiremock.yml up -d --no-deps app
+#        (필요하면 docker compose stop wiremock)
+services:
+  wiremock:
+    image: wiremock/wiremock:3
+    container_name: wiremock
+    restart: unless-stopped
+    command:
+      - --global-response-templating # 응답에서 요청값(transactionUuid) 에코 허용
+      - --disable-banner
+    ports:
+      - "8090:8080" # 호스트에서 stub 확인용(선택). app은 compose 네트워크로 wiremock:8080 접근
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings:ro
