@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
+// @Service
 @RequiredArgsConstructor
 public class PaymentCommandServiceV1 implements PaymentCommandService {
 

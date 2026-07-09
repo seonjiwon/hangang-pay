@@ -13,6 +13,8 @@ export const ENDPOINTS = {
   loginUser: '/api/v1/auth/users/login',
   // 2. 충전 intent 생성 -> 요청 해시(SHA-256)를 계산하는 지점. bank/besu는 호출하지 않음(BE-local)
   chargeIntents: '/api/v1/charge/intents',
+  // 3. 결제 intent 생성 -> payer wallet 비관락(v0) / Redis 락(v1) 지점. 실행은 /api/v1/payment/{uuid}/execute (동적 경로)
+  paymentIntents: '/api/v1/payment/intents',
 };
 
 // JSON 요청 공통 헤더

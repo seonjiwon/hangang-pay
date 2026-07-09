@@ -5,7 +5,7 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: validate                    # 운영은 스키마 검증만. create/update 금지(데이터 보호)
+      ddl-auto: update                      # 스키마 자동 반영(추가만, 기존 데이터 보존). 안정화되면 validate로 되돌린다
     open-in-view: false                     # 영속성 컨텍스트를 뷰까지 끌고 가지 않음(커넥션 점유 방지)
   session: # HTTP 세션을 Redis로 외부화. Green/Blue 다중 EC2 간 세션 공유 목적
     store-type: redis

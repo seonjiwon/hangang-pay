@@ -9,8 +9,12 @@ import family.fisa.hangangpay.domain.transaction.dto.user.response.PaymentExecut
 import family.fisa.hangangpay.domain.transaction.entity.Transaction;
 import family.fisa.hangangpay.domain.transaction.entity.TransactionStatus;
 import family.fisa.hangangpay.domain.transaction.internal.ApprovalNumberGenerator;
+import family.fisa.hangangpay.domain.transaction.internal.IdempotencyDecision;
+import family.fisa.hangangpay.domain.transaction.internal.IdempotencyDecisionType;
+import family.fisa.hangangpay.domain.transaction.internal.IdempotencyKey;
 import family.fisa.hangangpay.domain.transaction.internal.payment.PaymentExecutionPreparationResult;
 import family.fisa.hangangpay.domain.transaction.internal.payment.PaymentExecutionPrepared;
+import family.fisa.hangangpay.domain.transaction.internal.payment.PaymentIdempotencyStore;
 import family.fisa.hangangpay.domain.transaction.repository.TransactionRepository;
 import family.fisa.hangangpay.domain.transaction.service.payment.PaymentStateWriter;
 import family.fisa.hangangpay.domain.user.code.UserErrorCode;
@@ -22,6 +26,7 @@ import family.fisa.hangangpay.global.exception.BusinessException;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -30,10 +35,10 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * PAYMENT 상태 쓰기 전담. 각 메서드는 REQUIRES_NEW로 독립 트랜잭션을 커밋한다.
  *
- * <p>동일 사용자의 동시 실행은 payer wallet 비관적 락으로 직렬화하고, 멱등성은 거래 상태로 판단한다.
+ * <p>동시 실행은 payer wallet 비관적 락(NOWAIT)으로 직렬화하고, 멱등성은 멱등 스토어가 담당한다.
  */
 @Slf4j
-// @Service
+@Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.REQUIRES_NEW)
 public class PaymentStateWriterV0 implements PaymentStateWriter {
@@ -43,37 +48,55 @@ public class PaymentStateWriterV0 implements PaymentStateWriter {
     private final MerchantRepository merchantRepository;
     private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PaymentIdempotencyStore paymentIdempotencyStore;
 
     public PaymentExecutionPreparationResult prepareExecution(
             Long userId, Long partyId, String transactionUuid, String paymentPin) {
-        // payer wallet 행 락 - 동일 사용자의 동시 실행을 직렬화 (PENDING -> PROCESSING 경합 방지)
-        walletRepository
-                .findByParty_IdForUpdate(partyId)
-                .orElseThrow(() -> new BusinessException(WalletErrorCode.WALLET_NOT_FOUND));
 
+        // 1. payer wallet 행에 NOWAIT 락을 건다. 다른 실행이 이미 락을 쥐고 있으면 대기 없이 즉시 실패 -> 중복 실행 거절.
+        try {
+            walletRepository
+                    .findByParty_IdForUpdateNoWait(partyId)
+                    .orElseThrow(() -> new BusinessException(WalletErrorCode.WALLET_NOT_FOUND));
+        } catch (PessimisticLockingFailureException e) {
+            throw new BusinessException(TransactionErrorCode.PAYMENT_ALREADY_PROCESSING);
+        }
+
+        // 2. PENDING 결제 거래와 결제자(PIN 검증용)를 조회한다.
         Transaction transaction = getPaymentTransaction(transactionUuid);
         User user = getUser(userId);
 
+        // 3. 이 거래가 요청자 본인 것인지 확인한다.
         transaction.validateOwner(partyId);
 
+        // 4. 결제 PIN을 검증한다.
         if (!passwordEncoder.matches(paymentPin, user.getPaymentPinHash())) {
             throw new BusinessException(UserErrorCode.INVALID_PIN_NUMBER);
         }
 
-        // 멱등: 거래 상태로 중복 요청 판단 (SUCCESS -> 기존 결과 재사용, PROCESSING -> 진행 중)
-        if (transaction.getStatus() == TransactionStatus.SUCCESS) {
-            Merchant merchant = getMerchant(transaction.getToParty().getId());
-            return PaymentExecutionPreparationResult.snapshot(
-                    PaymentExecuteResponse.from(
-                            transaction, merchant.getMerchantName(), LocalDateTime.now()));
+        // 5. 멱등 스토어에 실행을 선점한다. 같은 uuid의 재요청이면 그 결과로 분기한다.
+        IdempotencyDecision<PaymentExecuteResponse> decision =
+                paymentIdempotencyStore.beginExecution(
+                        new IdempotencyKey(transactionUuid, null), transaction.getId());
+
+        // 5-1. 이미 완료된 요청이면 저장된 응답(snapshot)을 그대로 반환한다.
+        if (decision.type() == IdempotencyDecisionType.RETURN_SNAPSHOT) {
+            return PaymentExecutionPreparationResult.snapshot(decision.responseSnapshot());
         }
-        if (transaction.getStatus() == TransactionStatus.PROCESSING) {
+        // 5-2. 같은 uuid인데 요청 내용이 다르면 충돌로 거절한다.
+        if (decision.type() == IdempotencyDecisionType.CONFLICT) {
+            throw new BusinessException(TransactionErrorCode.IDEMPOTENCY_CONFLICT);
+        }
+        // 5-3. 아직 처리 중인 요청이면 거절한다.
+        if (decision.type() == IdempotencyDecisionType.PROCESSING) {
             throw new BusinessException(TransactionErrorCode.PAYMENT_ALREADY_PROCESSING);
         }
 
+        // 6. 실행 가능한 상태(PENDING)인지 확인하고 PROCESSING으로 전환한다.
         transaction.validateExecutableStatus();
         transaction.markProcessing();
 
+        // 7. 은행 호출에 필요한 실행 데이터를 만들어 반환한다.
         return PaymentExecutionPreparationResult.prepared(
                 PaymentExecutionPrepared.from(transaction, null));
     }
@@ -137,7 +160,6 @@ public class PaymentStateWriterV0 implements PaymentStateWriter {
             transaction.reconcileFailed();
         }
 
-        // PROCESSING(은행 아직 처리 중)이면 상태를 바꾸지 않고 현재 상태 그대로 반환한다.
         Merchant merchant = getMerchant(transaction.getToParty().getId());
         return PaymentExecuteResponse.from(
                 transaction, merchant.getMerchantName(), bankStatus.confirmedAt());

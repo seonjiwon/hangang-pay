@@ -22,6 +22,11 @@ public class WalletRepositoryImpl implements WalletRepository {
     }
 
     @Override
+    public Optional<Wallet> findByParty_IdForUpdateNoWait(Long partyId) {
+        return walletJpaRepository.findByParty_IdForUpdateNoWait(partyId);
+    }
+
+    @Override
     public Optional<Wallet> findByIdAndParty_Id(Long id, Long partyId) {
         return walletJpaRepository.findByIdAndParty_Id(id, partyId);
     }
