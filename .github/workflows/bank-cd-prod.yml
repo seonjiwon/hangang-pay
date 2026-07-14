@@ -91,6 +91,8 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5 # compose/alloy config를 호스트로 동기화하려면 레포 파일이 필요
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
@@ -128,21 +130,76 @@ jobs:
           printf '%s\n' "${{ secrets.BANK_SSH_KEY }}" > ~/.ssh/bank_key
           chmod 600 ~/.ssh/bank_key
 
-          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ github.sha }}"
+          SSH_OPTS="-i $HOME/.ssh/bank_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+          TARGET="${{ vars.BANK_SSH_USER }}@${{ vars.BANK_HOST }}"
 
-          # bank 인스턴스에서 실행할 스크립트. $IMAGE는 러너에서 치환, 원격 셸 구문(\$(...))은 이스케이프.
-          REMOTE_SCRIPT="set -e
+          # 1. 최신 compose/alloy config를 호스트로 동기화 (레포 ↔ 호스트 드리프트 방지).
+          ssh $SSH_OPTS "$TARGET" "mkdir -p ~/hangang-pay/hangang-pay-bank/deploy/alloy"
+          scp $SSH_OPTS hangang-pay-bank/deploy/docker-compose.yml "$TARGET:~/hangang-pay/hangang-pay-bank/deploy/docker-compose.yml"
+          scp $SSH_OPTS hangang-pay-bank/deploy/alloy/config.alloy  "$TARGET:~/hangang-pay/hangang-pay-bank/deploy/alloy/config.alloy"
+
+          # 2. 원격 배포. quoted heredoc(<<'REMOTE') → 러너 셸은 확장 안 함, GHA만 ${{ }} 치환.
+          #    원격 셸 변수($i, $(hostname) 등)는 그대로 원격에서 평가된다.
+          ssh $SSH_OPTS "$TARGET" bash -s <<'REMOTE'
+          set -e
           cd ~/hangang-pay/hangang-pay-bank/deploy
-          echo \"deploying ${IMAGE}\"
-          export APP_IMAGE=${IMAGE}
-          docker compose pull
-          docker compose up -d
-          docker image prune -af --filter 'until=48h' || true
-          for i in \$(seq 1 30); do curl -fsS http://127.0.0.1:8081/actuator/health && exit 0; sleep 5; done
-          echo 'health check timeout'; docker compose logs --tail 100 app; exit 1"
+          touch .env
 
-          ssh -i ~/.ssh/bank_key \
-            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
-            "${{ vars.BANK_SSH_USER }}@${{ vars.BANK_HOST }}" \
-            bash -s <<< "$REMOTE_SCRIPT"
+          # 2-1. alloy 라벨/타겟(비밀 아님)을 항상 올바른 값으로 upsert.
+          #      APP_CONTAINER_NAME 누락/공백이면 로그 keep 필터가 컨테이너를 못 잡아 로그가 통째로 유실된다.
+          upsert() {
+            key="$1"; val="$2"
+            if grep -q "^${key}=" .env; then
+              sed -i "s|^${key}=.*|${key}=${val}|" .env
+            else
+              printf '%s=%s\n' "$key" "$val" >> .env
+            fi
+          }
+          upsert APP_CONTAINER_NAME bank-app
+          upsert APP_SCRAPE_TARGET  app:8081
+          upsert ALLOY_SERVICE      hangang-pay-bank
+          upsert DEPLOY_TARGET      onprem
+          upsert ALLOY_ENV          prod
+          upsert ALLOY_COLOR        ""
+          grep -qE '^INSTANCE_ID=.+' .env || upsert INSTANCE_ID "$(hostname)"
+
+          # 2-2. Grafana 크리덴셜(비밀)은 비어있을 때만 채운다(기존 값 clobber 금지). secret 미설정이면 건너뜀.
+          fill_if_absent() {
+            key="$1"; val="$2"
+            [ -n "$val" ] || return 0
+            grep -q "^${key}=" .env || printf '%s=%s\n' "$key" "$val" >> .env
+          }
+          fill_if_absent GRAFANA_LOKI_URL      '${{ secrets.ONPREM_BANK_GRAFANA_LOKI_URL }}'
+          fill_if_absent GRAFANA_LOKI_USER     '${{ secrets.ONPREM_BANK_GRAFANA_LOKI_USER }}'
+          fill_if_absent GRAFANA_LOKI_PASSWORD '${{ secrets.ONPREM_BANK_GRAFANA_LOKI_PASSWORD }}'
+          fill_if_absent GRAFANA_PROM_URL      '${{ secrets.ONPREM_BANK_GRAFANA_PROM_URL }}'
+          fill_if_absent GRAFANA_PROM_USER     '${{ secrets.ONPREM_BANK_GRAFANA_PROM_USER }}'
+          fill_if_absent GRAFANA_PROM_PASSWORD '${{ secrets.ONPREM_BANK_GRAFANA_PROM_PASSWORD }}'
+          chmod 600 .env
+
+          # 2-3. 앱 이미지만 이번 커밋 sha로 교체하고 전체 스택(app+alloy) 재기동.
+          export APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/hangang-pay-bank:${{ github.sha }}
+          echo "deploying $APP_IMAGE"
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker image prune -af --filter 'until=48h' || true
+
+          # 2-4. app(8081) 헬스체크.
+          ok=false
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8081/actuator/health >/dev/null; then ok=true; break; fi
+            sleep 5
+          done
+          if [ "$ok" != true ]; then echo 'app health check timeout'; docker compose logs --tail 100 app; exit 1; fi
+
+          # 2-5. alloy 사이드카가 실제로 떠 있는지 확인(로그/메트릭 파이프라인). 죽어 있으면 배포 실패.
+          alloy_status=$(docker inspect -f '{{.State.Status}}' bank-alloy 2>/dev/null || echo missing)
+          if [ "$alloy_status" != running ]; then
+            echo "bank-alloy not running (status=$alloy_status)"; docker compose logs --tail 100 alloy || true; exit 1
+          fi
+          # 2-6. Loki 크리덴셜 주입 여부(없으면 로그가 안 감 — 경고만, 배포는 통과).
+          if ! docker exec bank-alloy printenv GRAFANA_LOKI_URL 2>/dev/null | grep -q .; then
+            echo 'WARN: bank-alloy에 GRAFANA_LOKI_URL 없음 → Loki 로그 push 안 됨. .env에 Loki 크리덴셜을 넣어야 한다.'
+          fi
+          echo 'bank deploy OK (app healthy, alloy running)'
+          REMOTE
