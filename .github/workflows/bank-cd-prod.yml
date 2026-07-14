@@ -138,7 +138,7 @@ jobs:
           scp $SSH_OPTS hangang-pay-bank/deploy/docker-compose.yml "$TARGET:~/hangang-pay/hangang-pay-bank/deploy/docker-compose.yml"
           scp $SSH_OPTS hangang-pay-bank/deploy/alloy/config.alloy  "$TARGET:~/hangang-pay/hangang-pay-bank/deploy/alloy/config.alloy"
 
-          # 2. 원격 배포. quoted heredoc(<<'REMOTE') → 러너 셸은 확장 안 함, GHA만 ${{ }} 치환.
+          # 2. 원격 배포. quoted heredoc(<<'REMOTE') → 러너 셸은 확장 안 함, GHA 표현식만 치환.
           #    원격 셸 변수($i, $(hostname) 등)는 그대로 원격에서 평가된다.
           ssh $SSH_OPTS "$TARGET" bash -s <<'REMOTE'
           set -e
