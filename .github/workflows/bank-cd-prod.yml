@@ -182,6 +182,8 @@ jobs:
           echo "deploying $APP_IMAGE"
           docker compose pull
           docker compose up -d --remove-orphans
+          # config.alloy는 bind-mount라 파일만 바뀌면 compose가 재생성 안 함 → alloy를 강제 재생성해 새 설정 반영.
+          docker compose up -d --force-recreate --no-deps alloy
           docker image prune -af --filter 'until=48h' || true
 
           # 2-4. app(8081) 헬스체크.

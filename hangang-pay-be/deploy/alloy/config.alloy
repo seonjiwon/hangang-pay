@@ -1,6 +1,6 @@
 // Grafana Alloy 수집 설정 (hangang-pay 공통)
 // - 메트릭: 앱의 /actuator/prometheus 스크랩 → Grafana Cloud Prometheus remote_write
-// - 로그: 앱 컨테이너 stdout(ECS JSON) 수집 → Grafana Cloud Loki push
+// - 로그: 앱 컨테이너 stdout(평문) 수집 → Grafana Cloud Loki push
 //
 // 모든 환경값/크리덴셜은 환경변수로 외부화한다. 이 파일에는 secret이 없으므로 커밋 가능.
 // 서버마다 다른 값은 .env로만 분기한다. (config.alloy는 두 레포 바이트 동일)
@@ -45,7 +45,7 @@ prometheus.remote_write "grafana_cloud" {
 }
 
 // ----------------------------------------------------------------------------
-// 2. 로그: 앱 컨테이너 stdout(ECS JSON) 수집 → Grafana Cloud Loki push
+// 2. 로그: 앱 컨테이너 stdout(평문) 수집 → Grafana Cloud Loki push
 // ----------------------------------------------------------------------------
 
 // 2-1. docker 데몬에서 컨테이너 목록 발견
@@ -94,12 +94,10 @@ loki.source.docker "app" {
   forward_to = [loki.process.app.receiver]
 }
 
-// 2-4. ECS JSON 파싱 → log.level을 level 라벨로 승격
+// 2-4. 평문 로그 라인에서 레벨 토큰을 추출해 level 라벨로 승격
 loki.process "app" {
-  stage.json {
-    expressions = {
-      level = "log.level",
-    }
+  stage.regexp {
+    expression = "(?P<level>TRACE|DEBUG|INFO|WARN|ERROR)"
   }
   stage.labels {
     values = {

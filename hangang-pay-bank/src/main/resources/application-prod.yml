@@ -18,9 +18,6 @@ blockchain:                                  # onprem-test에서 이동 + 죽은
 logging:
   level:
     family.fisa.hangangpaybank: INFO         # onprem-test는 'family.fisa.hangangpay'(패키지 오타)였어서 교정
-  structured:
-    format:
-      console: ecs                           # stdout→ECS JSON, Alloy가 수집해 Loki push
 
 # Sentry: 운영/데모 환경 식별 + 성능 트레이싱 샘플링
 sentry:

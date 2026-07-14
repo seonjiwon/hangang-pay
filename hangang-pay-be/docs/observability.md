@@ -63,7 +63,7 @@ EC2는 `start.sh`가 SSM(`/hangang-pay/be/prod/*`) + IMDS로 자동 생성한다
 ## 활성 조건
 
 - **Sentry**: `SENTRY_DSN`이 있을 때만 동작. `prod` 프로필에서 `environment`·`traces-sample-rate` 설정. `WARN` 이상 로그가 이벤트로 전송된다.
-- **구조화 로깅(ECS JSON)**: `prod` 프로필에서만 활성(`logging.structured.format.console=ecs`). local/dev는 사람이 읽는 기본 포맷 유지.
+- **콘솔 로깅**: 모든 프로필이 사람이 읽는 평문 포맷. Alloy가 stdout을 그대로 수집해 Loki로 push하며, `loki.process`의 `stage.regexp`가 라인에서 레벨(INFO/WARN/ERROR 등)을 뽑아 `level` 라벨로 승격한다.
 - **메트릭**: `/actuator/prometheus` (모든 프로필 노출).
 
 ## 배포 흐름 (EC2 / CodeDeploy)
