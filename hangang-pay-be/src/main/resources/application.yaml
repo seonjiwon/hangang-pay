@@ -33,6 +33,24 @@ management:
     web:
       exposure:
         include: health, info, prometheus
+  metrics:
+    distribution:
+      # http.server.requests 히스토그램 버킷 노출 -> Grafana p95/p99(histogram_quantile) 계산 가능
+      percentiles-histogram:
+        http.server.requests: true
+      minimum-expected-value:
+        http.server.requests: 5ms
+      maximum-expected-value:
+        http.server.requests: 10s
+  metrics:
+    distribution:
+      # http.server.requests 히스토그램 버킷(_bucket) 노출 -> Grafana p95/p99(histogram_quantile) 계산 가능
+      percentiles-histogram:
+        http.server.requests: true
+      minimum-expected-value:
+        http.server.requests: 5ms
+      maximum-expected-value:
+        http.server.requests: 10s
 
 # Sentry (에러 추적 + 성능 트레이싱)
 # DSN은 환경변수로 주입. 미설정 시(local/dev) Sentry 비활성

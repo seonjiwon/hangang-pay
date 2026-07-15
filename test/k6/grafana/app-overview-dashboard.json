@@ -133,8 +133,8 @@
       "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(lettuce_commands_duration_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "명령/초" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(lettuce_commands_async_failed_total{service=~\"$service\"}[1m]))", "legendFormat": "실패/초" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(lettuce_command_completion_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "전체 명령/초" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (command) (rate(lettuce_command_completion_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "{{command}}" }
       ]
     },
     {
@@ -160,6 +160,22 @@
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
         { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (service, level) (rate(logback_events_total{service=~\"$service\", level=~\"error|warn\"}[1m]))", "legendFormat": "{{service}} {{level}}" }
+      ]
+    },
+    { "type": "row", "title": "F. 결제 처리량 (TPS)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 }, "id": 105, "collapsed": false },
+    {
+      "id": 21, "title": "결제 처리량 (성공 TPS · 락거절 409/s)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "description": "http.server.requests 를 execute uri+status 로 필터. '요청률' 패널(전체 요청)과 달리 실제 결제 성공/거절만 본다.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 55 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "결제 성공 TPS" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+        { "matcher": { "id": "byName", "options": "락 거절 409/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri=\"/api/v1/payment/{transactionUuid}/execute\", status=\"200\"}[1m]))", "legendFormat": "결제 성공 TPS" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri=\"/api/v1/payment/{transactionUuid}/execute\", status=\"409\"}[1m]))", "legendFormat": "락 거절 409/s" }
       ]
     }
   ]

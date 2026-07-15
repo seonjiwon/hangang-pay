@@ -33,7 +33,9 @@ import { BASE_URL, ENDPOINTS, JSON_HEADERS } from './config.js';
 import { loginUser } from './lib/auth.js';
 
 // 1. 하나의 uuid에 동시에 쏘는 중복 실행 수.
-const DUP = 5;
+//    멱등성 게이트는 VUS=1로 돌린다(교차 VU 지갑 경합 제거 -> 순수하게 "같은 uuid N발 -> 1회 처리"만 검증).
+//    부하 성격으로 보고 싶으면 VUS를 올린다. 예: k6 run -e VUS=1 -e ITERS=30 -e DUP=5 ...
+const DUP = Number(__ENV.DUP || 5);
 
 // 2. 시드 로드 (init 단계. 모든 VU가 공유하는 읽기전용 배열).
 const USERS = new SharedArray('payment-users', function () {
@@ -55,8 +57,8 @@ export const options = {
   scenarios: {
     idempotency: {
       executor: 'per-vu-iterations',
-      vus: 5,
-      iterations: 20,
+      vus: Number(__ENV.VUS || 5),
+      iterations: Number(__ENV.ITERS || 20),
       maxDuration: '2m',
     },
   },
@@ -70,18 +72,25 @@ export const options = {
 // 5. VU 로컬 상태 (k6는 VU마다 독립 JS 인스턴스).
 let loggedIn = false;
 let me = null;
+let sessionValue = null;
 
 export default function () {
   // 6. VU당 최초 1회만 로그인 (BCrypt라 비싸므로 루프마다 하지 않는다).
   if (!loggedIn) {
     me = USERS[(__VU - 1) % USERS.length];
-    loginUser(me);
+    const res = loginUser(me);
+    const sc = res.cookies['SESSION'];
+    if (sc && sc.length) sessionValue = sc[0].value;
     loggedIn = true;
   }
+  // 6-1. 매 iteration 세션 쿠키를 non-secure로 재고정한다.
+  //      서버가 실행 응답에 Secure SESSION 쿠키를 다시 내리면 k6 jar가 그걸 덮어써
+  //      plain http에 안 실려 다음 요청이 401나는 것을 막는다.
+  if (sessionValue) http.cookieJar().set(BASE_URL, 'SESSION', sessionValue);
 
   // 7. 금액을 전역 유일하게 만들어 findLivePendingPayment(같은 from/to/amount 10분내 재사용)에 안 걸리게 한다.
   //    (금액 상한 검증에 걸리면 승수 1000000을 줄인다.)
-  const amount = 1000 + __VU * 1000000 + __ITER;
+  const amount = Number(__ENV.ABASE || 1000) + __VU * 1000000 + __ITER;
 
   // 8. 결제 intent 1건 생성.
   const intentRes = http.post(
@@ -92,7 +101,10 @@ export default function () {
   const intentOk = check(intentRes, {
     '결제 intent 2xx': (r) => r.status >= 200 && r.status < 300,
   });
-  if (!intentOk) return; // intent 실패면 시드/가맹점 설정 점검
+  if (!intentOk) {
+    console.error(`[intent-fail] vu=${__VU} iter=${__ITER} amount=${amount} status=${intentRes.status} body=${String(intentRes.body).slice(0,200)}`);
+    return; // intent 실패면 시드/가맹점 설정 점검
+  }
 
   const transactionUuid = intentRes.json('result.transactionUuid');
   if (!transactionUuid) return;
