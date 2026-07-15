@@ -12,7 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 /** 같은 요청인지 판단하는 클래스 */
-// @Component
+@Component  // [벤치마크] Full v1: 멱등 스냅샷을 Redis로 (v0/DB 복원 시 이쪽을 끈다)
 public class RedisPaymentIdempotencyStore
         extends AbstractRedisIdempotencyStore<PaymentExecuteResponse, PaymentIdempotencyRecord>
         implements PaymentIdempotencyStore {

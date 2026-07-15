@@ -13,7 +13,7 @@ import family.fisa.hangangpay.global.code.error.BaseErrorCode;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-@Component
+// @Component  // [벤치마크] Full v1: 멱등 스냅샷을 Redis로 옮김 (RedisPaymentIdempotencyStore 활성)
 @Transactional
 public class DbPaymentIdempotencyStore extends AbstractDbIdempotencyStore<PaymentExecuteResponse>
         implements PaymentIdempotencyStore {

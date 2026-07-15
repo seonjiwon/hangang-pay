@@ -48,17 +48,38 @@ const payRejected = new Counter('payment_rejected'); // 409 = 락 경합 거절
 const payError = new Counter('payment_error');       // 그 외(설정/시드 문제 신호)
 const execMs = new Trend('payment_execute_ms');      // execute 지연(ms)
 
-// 5. 부하 프로파일: VU 를 단계적으로 올리며 성공 처리량 곡선을 본다.
-export const options = {
-    stages: [
+// 5. 부하 프로파일.
+//    PROFILE=normal(기본): 처리량/병목 관측용 완만한 램프(최대 80 VU).
+//    PROFILE=breakpoint  : 한계점 테스트 — VU를 공격적으로 올려 서버가 무너지는 지점(5xx/타임아웃)을 찾는다.
+const STAGES = {
+    normal: [
         { duration: '30s', target: 20 },
         { duration: '1m', target: 50 },
         { duration: '1m', target: 80 },
         { duration: '30s', target: 0 },
     ],
-    thresholds: {
-        payment_execute_ms: ['p(95)<5000'], // 참고용(핵심은 payment_success 처리량과 대시보드 병목).
+    breakpoint: [
+        { duration: '45s', target: 100 },
+        { duration: '45s', target: 200 },
+        { duration: '45s', target: 350 },
+        { duration: '45s', target: 500 },
+        { duration: '60s', target: 800 },
+        { duration: '20s', target: 0 },
+    ],
+};
+export const options = {
+    scenarios: {
+        default: {
+            executor: 'ramping-vus',
+            startVUs: 0,
+            stages: STAGES[__ENV.PROFILE] || STAGES.normal,
+            gracefulRampDown: '5s',
+            gracefulStop: '10s',
+        },
     },
+    // breakpoint는 실패가 목적이라 threshold를 두지 않는다(normal에서만 참고 지표).
+    thresholds:
+        (__ENV.PROFILE === 'breakpoint') ? {} : { payment_execute_ms: ['p(95)<5000'] },
 };
 
 // 6. VU 로컬 상태.

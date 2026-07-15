@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-// @Service
+@Service
 @RequiredArgsConstructor
 public class PaymentCommandServiceV1 implements PaymentCommandService {
 
@@ -63,8 +63,8 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
     public PaymentIntentResponse createPaymentIntent(
             Long partyId, PaymentIntentCreateRequest request) {
 
-        /** 요청을 처리하기 전, TokenBucket 방식을 이용하여 Quota 확인 */
-        paymentRateLimiter.checkIntentRateLimit(partyId, request.merchantPartyId());
+        /** [벤치마크] rate limit off — v0(락만)과 공정 비교 위해 intent 레이트리밋 비활성 */
+        // paymentRateLimiter.checkIntentRateLimit(partyId, request.merchantPartyId());
 
         /** DB 조회 */
         Party userParty = getParty(partyId);

@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
-// @Service
+@Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.REQUIRES_NEW)
 public class PaymentStateWriterV1 implements PaymentStateWriter {
@@ -76,10 +76,10 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
 
         transaction.validateExecutableStatus();
 
-        paymentRateLimiter.checkExecutionRateLimit(
-                partyId, transaction.getToParty().getId(), transactionUuid);
-
-        paymentRateLimiter.checkBankOutboundRateLimit();
+        // [벤치마크] rate limit off — 순수 Redis 락 처리량만 측정
+        // paymentRateLimiter.checkExecutionRateLimit(
+        //         partyId, transaction.getToParty().getId(), transactionUuid);
+        // paymentRateLimiter.checkBankOutboundRateLimit();
 
         transaction.markProcessing();
 

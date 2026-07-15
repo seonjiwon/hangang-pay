@@ -41,7 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>동시 실행 직렬화는 StateWriter의 payer wallet 비관적 락(NOWAIT), 멱등성은 멱등 스토어가 담당한다.
  */
-@Service
+// @Service  // [벤치마크] v1 실험 중 비활성 (v1 활성화 시 이쪽을 끈다)
 @RequiredArgsConstructor
 public class PaymentCommandServiceV0 implements PaymentCommandService {
 
