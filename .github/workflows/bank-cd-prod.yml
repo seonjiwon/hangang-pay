@@ -186,9 +186,9 @@ jobs:
           docker compose up -d --force-recreate --no-deps alloy
           docker image prune -af --filter 'until=48h' || true
 
-          # 2-4. app(8081) 헬스체크.
+          # 2-4. app(8081) 헬스체크. qemu VM은 부팅이 느려(컨텍스트 init만 ~55s) 넉넉히 360s 대기.
           ok=false
-          for i in $(seq 1 30); do
+          for i in $(seq 1 72); do
             if curl -fsS http://127.0.0.1:8081/actuator/health >/dev/null; then ok=true; break; fi
             sleep 5
           done

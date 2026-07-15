@@ -35,6 +35,9 @@ services:
   node1:
     image: besu-jdk21:26.4.0
     container_name: besu-node1
+    restart: unless-stopped
+    environment:
+      BESU_OPTS: "-XX:TieredStopAtLevel=1 -Xshare:off"   # qemu(KVM 없음) JIT SIGSEGV 회피: C2 off + CDS off
     volumes:
       - ./node-1/data:/var/lib/besu
       - ./genesis.json:/etc/besu/genesis.json
@@ -66,6 +69,9 @@ services:
   node2:
     image: besu-jdk21:26.4.0
     container_name: besu-node2
+    restart: unless-stopped
+    environment:
+      BESU_OPTS: "-XX:TieredStopAtLevel=1 -Xshare:off"   # qemu(KVM 없음) JIT SIGSEGV 회피: C2 off + CDS off
     volumes:
       - ./node-2/data:/var/lib/besu
       - ./genesis.json:/etc/besu/genesis.json
@@ -97,6 +103,9 @@ services:
   node3:
     image: besu-jdk21:26.4.0
     container_name: besu-node3
+    restart: unless-stopped
+    environment:
+      BESU_OPTS: "-XX:TieredStopAtLevel=1 -Xshare:off"   # qemu(KVM 없음) JIT SIGSEGV 회피: C2 off + CDS off
     volumes:
       - ./node-3/data:/var/lib/besu
       - ./genesis.json:/etc/besu/genesis.json
@@ -128,6 +137,9 @@ services:
   node4:
     image: besu-jdk21:26.4.0
     container_name: besu-node4
+    restart: unless-stopped
+    environment:
+      BESU_OPTS: "-XX:TieredStopAtLevel=1 -Xshare:off"   # qemu(KVM 없음) JIT SIGSEGV 회피: C2 off + CDS off
     volumes:
       - ./node-4/data:/var/lib/besu
       - ./genesis.json:/etc/besu/genesis.json

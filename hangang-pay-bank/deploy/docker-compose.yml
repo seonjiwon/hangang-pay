@@ -13,6 +13,10 @@ services:
       - "8081:8081"
     env_file:
       - .env
+    environment:
+      # qemu(KVM 없는 에뮬레이션) VM에서 JVM 불안정 회피.
+      # C2 JIT off(-XX:TieredStopAtLevel=1) + CDS off(-Xshare:off). 같은 VM의 besu도 C2 off로 안정화한 전례.
+      JAVA_TOOL_OPTIONS: "-XX:TieredStopAtLevel=1 -Xshare:off"
 
   alloy:
     image: grafana/alloy:latest
