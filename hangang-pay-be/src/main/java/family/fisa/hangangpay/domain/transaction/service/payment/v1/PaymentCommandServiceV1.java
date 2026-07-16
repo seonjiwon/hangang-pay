@@ -63,8 +63,7 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
     public PaymentIntentResponse createPaymentIntent(
             Long partyId, PaymentIntentCreateRequest request) {
 
-        /** [벤치마크] rate limit off — v0(락만)과 공정 비교 위해 intent 레이트리밋 비활성 */
-        // paymentRateLimiter.checkIntentRateLimit(partyId, request.merchantPartyId());
+        paymentRateLimiter.checkIntentRateLimit(partyId, request.merchantPartyId());
 
         /** DB 조회 */
         Party userParty = getParty(partyId);

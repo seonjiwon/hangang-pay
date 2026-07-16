@@ -82,10 +82,9 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
 
         transaction.validateExecutableStatus();
 
-        // [벤치마크] rate limit off — 순수 Redis 락 처리량만 측정
-        // paymentRateLimiter.checkExecutionRateLimit(
-        //         partyId, transaction.getToParty().getId(), transactionUuid);
-        // paymentRateLimiter.checkBankOutboundRateLimit();
+        paymentRateLimiter.checkExecutionRateLimit(
+                partyId, transaction.getToParty().getId(), transactionUuid);
+        paymentRateLimiter.checkBankOutboundRateLimit();
 
         transaction.markProcessing();
 

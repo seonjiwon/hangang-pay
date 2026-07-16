@@ -131,8 +131,7 @@ class PaymentCommandServiceV1Test {
         assertThat(response.amount()).isEqualByComparingTo("10000");
         assertThat(response.itemName()).isEqualTo("아메리카노");
 
-        // [벤치마크] rate limit off — intent 레이트리밋 호출을 껐으므로 호출되지 않음을 검증
-        verify(paymentRateLimiter, never()).checkIntentRateLimit(any(), any());
+        verify(paymentRateLimiter).checkIntentRateLimit(USER_PARTY_ID, MERCHANT_PARTY_ID);
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(captor.capture());
