@@ -236,6 +236,45 @@
         { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(hikaricp_connections_usage_seconds_sum{service=~\"$service\"}[1m])) / sum(rate(hikaricp_connections_usage_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "점유 평균(s/checkout)" },
         { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "rate(hikaricp_connections_acquire_seconds_sum{service=~\"$service\"}[1m]) / rate(hikaricp_connections_acquire_seconds_count{service=~\"$service\"}[1m])", "legendFormat": "획득 대기(s)" }
       ]
+    },
+    { "type": "row", "title": "H. 코어 경쟁 · 스레드 상태 (측정)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 82 }, "id": 107, "collapsed": false },
+    {
+      "id": 40, "title": "코어 경쟁 — Load average(1m) vs 코어수",
+      "description": "system_load_average_1m = 실행 대기(run queue) 근사. 'load1 / 코어수'가 1을 넘으면 CPU 사용률(%)과 무관하게 코어가 포화 요구를 받는 것. 2~3이면 심한 경쟁. (node_exporter 없이 Micrometer가 제공)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 83 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "load1 / 코어수" }, "properties": [ { "id": "custom.lineWidth", "value": 3 }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } }, { "id": "custom.thresholdsStyle", "value": { "mode": "line" } } ] },
+        { "matcher": { "id": "byName", "options": "코어수" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash" } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } } ] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "system_load_average_1m{service=~\"$service\"}", "legendFormat": "load1" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "system_load_average_1m{service=~\"$service\"} / system_cpu_count{service=~\"$service\"}", "legendFormat": "load1 / 코어수" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "system_cpu_count{service=~\"$service\"}", "legendFormat": "코어수" }
+      ]
+    },
+    {
+      "id": 41, "title": "JVM 스레드 상태 (runnable=CPU경쟁 / waiting=자원대기)",
+      "description": "runnable이 코어수(2)를 지속 초과 = CPU 경쟁(run queue 백업). waiting/timed-waiting 급증 = 커넥션·락 대기(자원 고갈). 이 둘로 '사용률 낮아도 코어 경쟁(시나리오②)'과 '자원 대기로 블록(시나리오③)'을 구분한다.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 83 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "runnable" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }, { "id": "custom.lineWidth", "value": 3 } ] },
+        { "matcher": { "id": "byName", "options": "waiting" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } } ] },
+        { "matcher": { "id": "byName", "options": "timed-waiting" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] },
+        { "matcher": { "id": "byName", "options": "코어수(기준)" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash" } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } } ] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "jvm_threads_states_threads{service=~\"$service\", state=\"runnable\"}", "legendFormat": "runnable" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "jvm_threads_states_threads{service=~\"$service\", state=\"blocked\"}", "legendFormat": "blocked" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "jvm_threads_states_threads{service=~\"$service\", state=\"waiting\"}", "legendFormat": "waiting" },
+        { "refId": "D", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "jvm_threads_states_threads{service=~\"$service\", state=\"timed-waiting\"}", "legendFormat": "timed-waiting" },
+        { "refId": "E", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "system_cpu_count{service=~\"$service\"}", "legendFormat": "코어수(기준)" }
+      ]
     }
   ]
 }

@@ -66,6 +66,22 @@ const STAGES = {
         { duration: '60s', target: 800 },
         { duration: '20s', target: 0 },
     ],
+    // BCrypt/CPU 용량 측정: 낮은 VU를 계단식으로 유지하며 처리량이 코어 수에서 평탄해지는지 관찰.
+    capacity: [
+        { duration: '5s', target: 1 }, { duration: '40s', target: 1 },
+        { duration: '5s', target: 2 }, { duration: '40s', target: 2 },
+        { duration: '5s', target: 3 }, { duration: '40s', target: 3 },
+        { duration: '5s', target: 4 }, { duration: '40s', target: 4 },
+        { duration: '5s', target: 6 }, { duration: '40s', target: 6 },
+        { duration: '5s', target: 8 }, { duration: '40s', target: 8 },
+        { duration: '10s', target: 0 },
+    ],
+    // 붕괴 재현/방어 확인: 예전 붕괴를 부른 80VU를 오래 유지 + 120VU로 한 번 더 밀어 세마포어가 admission control로 막는지 본다.
+    flood: [
+        { duration: '15s', target: 80 }, { duration: '90s', target: 80 },
+        { duration: '15s', target: 120 }, { duration: '60s', target: 120 },
+        { duration: '15s', target: 0 },
+    ],
 };
 export const options = {
     scenarios: {
