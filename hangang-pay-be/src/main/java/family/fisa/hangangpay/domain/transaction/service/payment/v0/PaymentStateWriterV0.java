@@ -50,6 +50,15 @@ public class PaymentStateWriterV0 implements PaymentStateWriter {
     private final PasswordEncoder passwordEncoder;
     private final PaymentIdempotencyStore paymentIdempotencyStore;
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void verifyPaymentPin(Long userId, String paymentPin) {
+        // PIN(BCrypt) 검증은 상태-쓰기 트랜잭션 밖에서 수행한다. 느린 BCrypt가 DB 커넥션을 쥐지 않게 하기 위함.
+        User user = getUser(userId);
+        if (!passwordEncoder.matches(paymentPin, user.getPaymentPinHash())) {
+            throw new BusinessException(UserErrorCode.INVALID_PIN_NUMBER);
+        }
+    }
+
     public PaymentExecutionPreparationResult prepareExecution(
             Long userId, Long partyId, String transactionUuid, String paymentPin) {
 

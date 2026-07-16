@@ -25,6 +25,7 @@ import family.fisa.hangangpay.domain.transaction.internal.payment.PaymentRateLim
 import family.fisa.hangangpay.domain.transaction.internal.payment.PaymentRequestHashGenerator;
 import family.fisa.hangangpay.domain.transaction.repository.TransactionRepository;
 import family.fisa.hangangpay.domain.transaction.service.payment.PaymentStateWriter;
+import family.fisa.hangangpay.domain.user.code.UserErrorCode;
 import family.fisa.hangangpay.domain.user.entity.User;
 import family.fisa.hangangpay.domain.user.repository.UserRepository;
 import family.fisa.hangangpay.domain.wallet.entity.Wallet;
@@ -88,8 +89,6 @@ class PaymentStateWriterV1Test {
 
         given(transactionRepository.findByTransactionUuid(TRANSACTION_UUID))
                 .willReturn(Optional.of(transaction));
-        given(userRepository.findByIdWithParty(USER_ID)).willReturn(Optional.of(user()));
-        given(passwordEncoder.matches("123456", "pin-hash")).willReturn(true);
         given(
                         paymentIdempotencyStore.beginExecution(
                                 new IdempotencyKey(TRANSACTION_UUID, null), TRANSACTION_ID))
@@ -151,6 +150,17 @@ class PaymentStateWriterV1Test {
 
         verify(paymentRateLimiter, never()).checkExecutionRateLimit(any(), any(), any());
         verify(paymentRateLimiter, never()).checkBankOutboundRateLimit();
+    }
+
+    @Test
+    @DisplayName("PIN이 틀리면 INVALID_PIN_NUMBER 예외가 발생한다")
+    void verifyPaymentPin_wrongPinThrows() {
+        given(userRepository.findByIdWithParty(USER_ID)).willReturn(Optional.of(user()));
+        given(passwordEncoder.matches("000000", "pin-hash")).willReturn(false);
+
+        assertThatThrownBy(() -> paymentStateWriter.verifyPaymentPin(USER_ID, "000000"))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("code", UserErrorCode.INVALID_PIN_NUMBER);
     }
 
     @Test
@@ -257,8 +267,6 @@ class PaymentStateWriterV1Test {
     private void givenExecutionBase(Transaction transaction) {
         given(transactionRepository.findByTransactionUuid(TRANSACTION_UUID))
                 .willReturn(Optional.of(transaction));
-        given(userRepository.findByIdWithParty(USER_ID)).willReturn(Optional.of(user()));
-        given(passwordEncoder.matches("123456", "pin-hash")).willReturn(true);
     }
 
     private void givenRecoveryApplyBase(Transaction transaction) {

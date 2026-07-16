@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 /** PAYMENT 상태 쓰기 전담. 각 메서드는 REQUIRES_NEW로 독립 트랜잭션을 커밋한다. */
 public interface PaymentStateWriter {
 
+    /** PIN(BCrypt) 검증. 상태-쓰기 트랜잭션 밖에서 호출해 느린 BCrypt가 DB 커넥션을 쥐지 않게 한다. */
+    void verifyPaymentPin(Long userId, String paymentPin);
+
     PaymentExecutionPreparationResult prepareExecution(
             Long userId, Long partyId, String transactionUuid, String paymentPin);
 

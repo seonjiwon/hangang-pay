@@ -128,6 +128,9 @@ public class PaymentCommandServiceV1 implements PaymentCommandService {
     public PaymentExecuteResponse executePayment(
             Long userId, Long partyId, String transactionUuid, PaymentExecuteRequest request) {
 
+        // PIN(BCrypt) 검증은 락·트랜잭션 밖에서 먼저 수행한다. 느린 BCrypt가 DB 커넥션을 쥐지 않게 하기 위함.
+        paymentStateWriter.verifyPaymentPin(userId, request.paymentPin());
+
         return paymentLockManager.withTransactionLock(
                 transactionUuid,
                 () ->

@@ -41,16 +41,20 @@ public class PaymentStateWriterV1 implements PaymentStateWriter {
     private final PaymentRateLimiter paymentRateLimiter;
     private final PaymentRequestHashGenerator paymentRequestHashGenerator;
 
-    public PaymentExecutionPreparationResult prepareExecution(
-            Long userId, Long partyId, String transactionUuid, String paymentPin) {
-        Transaction transaction = getPaymentTransaction(transactionUuid);
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void verifyPaymentPin(Long userId, String paymentPin) {
+        // PIN(BCrypt) 검증은 상태-쓰기 트랜잭션 밖에서 수행한다. 느린 BCrypt가 DB 커넥션을 쥐지 않게 하기 위함.
         User user = getUser(userId);
-
-        transaction.validateOwner(partyId);
-
         if (!passwordEncoder.matches(paymentPin, user.getPaymentPinHash())) {
             throw new BusinessException(UserErrorCode.INVALID_PIN_NUMBER);
         }
+    }
+
+    public PaymentExecutionPreparationResult prepareExecution(
+            Long userId, Long partyId, String transactionUuid, String paymentPin) {
+        Transaction transaction = getPaymentTransaction(transactionUuid);
+
+        transaction.validateOwner(partyId);
 
         // 결제 execute는 서버가 uuid·내용(from -> to -> amount)을 소유하므로 요청 내용 조작이 불가능하다.
         // 따라서 요청 해시 대조가 불필요하여 계산을 생략한다. 멱등 판정은 uuid 기준으로 그대로 동작한다.
