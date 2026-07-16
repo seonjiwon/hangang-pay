@@ -1,6 +1,8 @@
 package family.fisa.hangangpay.global.config;
 
 import family.fisa.hangangpay.global.security.SessionAuthenticationFilter;
+import family.fisa.hangangpay.global.security.TimedPasswordEncoder;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -94,7 +96,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public PasswordEncoder passwordEncoder(MeterRegistry meterRegistry) {
+        return new TimedPasswordEncoder(new BCryptPasswordEncoder(), meterRegistry);
     }
 }

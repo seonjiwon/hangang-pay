@@ -1,0 +1,241 @@
+{
+  "title": "hangang-pay / payment bottleneck (측정)",
+  "uid": "hangang-payment-bottleneck",
+  "tags": ["hangang-pay", "payment", "bottleneck", "측정"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "templating": {
+    "list": [
+      { "name": "datasource", "label": "Prometheus", "type": "datasource", "query": "prometheus", "current": {}, "hide": 0 },
+      { "name": "service", "label": "service", "type": "custom", "query": "hangang-pay-be,hangang-pay-bank", "includeAll": true, "multi": true, "allValue": ".+", "current": { "text": "All", "value": "$__all" } }
+    ]
+  },
+  "panels": [
+    { "type": "row", "title": "A. CPU", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 100, "collapsed": false },
+    {
+      "id": 1, "title": "CPU 사용률 (system / process)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "system_cpu_usage{service=~\"$service\"}", "legendFormat": "{{service}} system" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "process_cpu_usage{service=~\"$service\"}", "legendFormat": "{{service}} process(JVM)" }
+      ]
+    },
+    { "type": "row", "title": "B. 요청 (RED)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }, "id": 101, "collapsed": false },
+    {
+      "id": 4, "title": "요청률 (req/s)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (service) (rate(http_server_requests_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "{{service}}" }
+      ]
+    },
+    {
+      "id": 5, "title": "에러율 (5xx %)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (service) (rate(http_server_requests_seconds_count{service=~\"$service\", status=~\"5..\"}[1m])) / sum by (service) (rate(http_server_requests_seconds_count{service=~\"$service\"}[1m])) * 100", "legendFormat": "{{service}}" }
+      ]
+    },
+    {
+      "id": 6, "title": "응답시간 (p95 / p99)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 0, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_server_requests_seconds_bucket{service=~\"$service\"}[1m])))", "legendFormat": "{{service}} p95" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "histogram_quantile(0.99, sum by (le, service) (rate(http_server_requests_seconds_bucket{service=~\"$service\"}[1m])))", "legendFormat": "{{service}} p99" }
+      ]
+    },
+    { "type": "row", "title": "C. 포화 (DB 커넥션 · 스레드)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 }, "id": 102, "collapsed": false },
+    {
+      "id": 7, "title": "DB 커넥션 사용 중 (active)", "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 9, "w": 6, "x": 0, "y": 19 },
+      "fieldConfig": { "defaults": { "unit": "suffix:/10", "min": 0, "max": 10, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 7 }, { "color": "red", "value": 9 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value_and_name" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "hikaricp_connections_active{service=~\"$service\"}", "legendFormat": "{{service}}" }
+      ]
+    },
+    {
+      "id": 16, "title": "DB 커넥션 사용량 추이 (active)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 9, "w": 18, "x": 6, "y": 19 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 10, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "hikaricp_connections_active{service=~\"$service\"}", "legendFormat": "{{service}} active" }
+      ]
+    },
+    {
+      "id": 8, "title": "커넥션 획득 평균 대기 (s)", "description": "요청이 DB 커넥션을 얻으려고 기다린 시간. 치솟으면 풀 부족", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "rate(hikaricp_connections_acquire_seconds_sum{service=~\"$service\"}[1m]) / rate(hikaricp_connections_acquire_seconds_count{service=~\"$service\"}[1m])", "legendFormat": "{{service}}" }
+      ]
+    },
+    {
+      "id": 9, "title": "스레드 (Tomcat busy/max · JVM live)", "description": "tomcat_* 는 mbeanregistry 활성 배포 후 표시. 그 전엔 jvm live로 확인", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2 } }, "overrides": [
+        { "matcher": { "id": "byRegexp", "options": ".*max.*" }, "properties": [{ "id": "custom.lineStyle", "value": { "fill": "dash" } }] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "tomcat_threads_busy_threads{service=~\"$service\"}", "legendFormat": "{{service}} tomcat busy" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "tomcat_threads_config_max_threads{service=~\"$service\"}", "legendFormat": "{{service}} tomcat max" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "jvm_threads_live_threads{service=~\"$service\"}", "legendFormat": "{{service}} jvm live" }
+      ]
+    },
+    { "type": "row", "title": "D. JVM 리소스", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 }, "id": 103, "collapsed": false },
+    {
+      "id": 10, "title": "Heap 메모리 (used / committed)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (service) (jvm_memory_used_bytes{service=~\"$service\", area=\"heap\"})", "legendFormat": "{{service}} used" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (service) (jvm_memory_committed_bytes{service=~\"$service\", area=\"heap\"})", "legendFormat": "{{service}} committed" }
+      ]
+    },
+    {
+      "id": 11, "title": "GC 정지시간 (초당)", "description": "초당 GC로 멈춘 시간(초). 0.1이면 초당 100ms 정지", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (service) (rate(jvm_gc_pause_seconds_sum{service=~\"$service\"}[1m]))", "legendFormat": "{{service}}" }
+      ]
+    },
+    { "type": "row", "title": "E. 의존성 · 로그", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 }, "id": 104, "collapsed": false },
+    {
+      "id": 12, "title": "Redis 명령률 (be)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 46 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(lettuce_command_completion_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "전체 명령/초" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (command) (rate(lettuce_command_completion_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "{{command}}" }
+      ]
+    },
+    {
+      "id": 13, "title": "RabbitMQ (bank)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 46 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(rabbitmq_messages_published_total{service=~\"$service\"}[1m]))", "legendFormat": "발행/초" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(rabbitmq_messages_consumed_total{service=~\"$service\"}[1m]))", "legendFormat": "소비/초" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(rabbitmq_messages_rejected_total{service=~\"$service\"}[1m]))", "legendFormat": "거절/초" }
+      ]
+    },
+    {
+      "id": 14, "title": "에러/경고 로그율 (초당)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 46 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 1 } }, "overrides": [
+        { "matcher": { "id": "byRegexp", "options": ".*error.*" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+        { "matcher": { "id": "byRegexp", "options": ".*warn.*" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum by (service, level) (rate(logback_events_total{service=~\"$service\", level=~\"error|warn\"}[1m]))", "legendFormat": "{{service}} {{level}}" }
+      ]
+    },
+    { "type": "row", "title": "F. 결제 처리량 (TPS)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 }, "id": 105, "collapsed": false },
+    {
+      "id": 21, "title": "결제 처리량 (성공 TPS · 락거절 409/s)", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "description": "http.server.requests 를 execute uri+status 로 필터. '요청률' 패널(전체 요청)과 달리 실제 결제 성공/거절만 본다.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 55 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "결제 성공 TPS" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+        { "matcher": { "id": "byName", "options": "락 거절 409/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri=\"/api/v1/payment/{transactionUuid}/execute\", status=\"200\"}[1m]))", "legendFormat": "결제 성공 TPS" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\", uri=\"/api/v1/payment/{transactionUuid}/execute\", status=\"409\"}[1m]))", "legendFormat": "락 거절 409/s" }
+      ]
+    },
+    { "type": "row", "title": "G. 커넥션 점유 분해 · BCrypt (측정)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 63 }, "id": 106, "collapsed": false },
+    {
+      "id": 30, "title": "커넥션 점유 분해 (동시 점유 = 초/초)",
+      "description": "rate(_sum) = 초당 누적 시간 = 평균 동시 개수. 점유(usage) ≈ 쿼리(repo) + BCrypt + 대기. 쿼리가 점유의 일부뿐이면 나머지는 BCrypt가 커넥션을 쥔 채 도는 것.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 64 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "커넥션 점유(usage)" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }] },
+        { "matcher": { "id": "byName", "options": "DB 쿼리(repo)" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+        { "matcher": { "id": "byName", "options": "BCrypt(matches)" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(hikaricp_connections_usage_seconds_sum{service=~\"$service\"}[1m]))", "legendFormat": "커넥션 점유(usage)" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(spring_data_repository_invocations_seconds_sum{service=~\"$service\"}[1m]))", "legendFormat": "DB 쿼리(repo)" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(security_password_matches_seconds_sum{service=~\"$service\"}[1m]))", "legendFormat": "BCrypt(matches)" }
+      ]
+    },
+    {
+      "id": 31, "title": "커넥션 이용률 (쿼리 시간 / 점유 시간 %)",
+      "description": "커넥션을 쥔 시간 중 실제 DB 쿼리에 쓴 비율. 낮으면(예 ~10%) 커넥션이 부족한 게 아니라 쥔 채 노는(=BCrypt) 것 -> 풀 상향은 효과 없음.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 64 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(spring_data_repository_invocations_seconds_sum{service=~\"$service\"}[1m])) / sum(rate(hikaricp_connections_usage_seconds_sum{service=~\"$service\"}[1m])) * 100", "legendFormat": "쿼리/점유 %" }
+      ]
+    },
+    {
+      "id": 32, "title": "BCrypt 연산 시간 (matches p50/p95/p99 · avg)",
+      "description": "PIN·비밀번호 검증(BCrypt) 1회 소요 시간. 결제 부하 중엔 대부분이 결제 PIN 검증 = 트랜잭션 내에서 커넥션을 쥔 채 도는 시간.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 73 },
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 0, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "histogram_quantile(0.5, sum by (le) (rate(security_password_matches_seconds_bucket{service=~\"$service\"}[1m])))", "legendFormat": "p50" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(security_password_matches_seconds_bucket{service=~\"$service\"}[1m])))", "legendFormat": "p95" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "histogram_quantile(0.99, sum by (le) (rate(security_password_matches_seconds_bucket{service=~\"$service\"}[1m])))", "legendFormat": "p99" },
+        { "refId": "D", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(security_password_matches_seconds_sum{service=~\"$service\"}[1m])) / sum(rate(security_password_matches_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "avg" }
+      ]
+    },
+    {
+      "id": 33, "title": "커넥션 점유 평균 (s/checkout) · 획득 대기 (s)",
+      "description": "점유 평균 = 커넥션 1회 대여당 쥐고 있던 시간(쿼리+BCrypt+기타 포함). 획득 대기 = 커넥션을 얻으려 기다린 시간.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 73 },
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "sum(rate(hikaricp_connections_usage_seconds_sum{service=~\"$service\"}[1m])) / sum(rate(hikaricp_connections_usage_seconds_count{service=~\"$service\"}[1m]))", "legendFormat": "점유 평균(s/checkout)" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "${datasource}" }, "expr": "rate(hikaricp_connections_acquire_seconds_sum{service=~\"$service\"}[1m]) / rate(hikaricp_connections_acquire_seconds_count{service=~\"$service\"}[1m])", "legendFormat": "획득 대기(s)" }
+      ]
+    }
+  ]
+}

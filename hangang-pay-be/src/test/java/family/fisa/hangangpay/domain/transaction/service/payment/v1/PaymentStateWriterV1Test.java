@@ -49,7 +49,6 @@ class PaymentStateWriterV1Test {
     private static final Long TRANSACTION_ID = 123L;
 
     private static final String TRANSACTION_UUID = "11111111-1111-1111-1111-111111111111";
-    private static final String REQUEST_HASH = "server-generated-request-hash";
 
     @Mock private TransactionRepository transactionRepository;
     @Mock private UserRepository userRepository;
@@ -91,11 +90,9 @@ class PaymentStateWriterV1Test {
                 .willReturn(Optional.of(transaction));
         given(userRepository.findByIdWithParty(USER_ID)).willReturn(Optional.of(user()));
         given(passwordEncoder.matches("123456", "pin-hash")).willReturn(true);
-        given(paymentRequestHashGenerator.generatePaymentExecuteHash(transaction))
-                .willReturn(REQUEST_HASH);
         given(
                         paymentIdempotencyStore.beginExecution(
-                                new IdempotencyKey(TRANSACTION_UUID, REQUEST_HASH), TRANSACTION_ID))
+                                new IdempotencyKey(TRANSACTION_UUID, null), TRANSACTION_ID))
                 .willReturn(IdempotencyDecision.returnSnapshot(snapshot));
 
         PaymentExecutionPreparationResult result =
@@ -119,7 +116,7 @@ class PaymentStateWriterV1Test {
         givenExecutionBase(transaction);
         given(
                         paymentIdempotencyStore.beginExecution(
-                                new IdempotencyKey(TRANSACTION_UUID, REQUEST_HASH), TRANSACTION_ID))
+                                new IdempotencyKey(TRANSACTION_UUID, null), TRANSACTION_ID))
                 .willReturn(IdempotencyDecision.conflict());
 
         assertThatThrownBy(
@@ -141,7 +138,7 @@ class PaymentStateWriterV1Test {
         givenExecutionBase(transaction);
         given(
                         paymentIdempotencyStore.beginExecution(
-                                new IdempotencyKey(TRANSACTION_UUID, REQUEST_HASH), TRANSACTION_ID))
+                                new IdempotencyKey(TRANSACTION_UUID, null), TRANSACTION_ID))
                 .willReturn(IdempotencyDecision.processing());
 
         assertThatThrownBy(
@@ -262,8 +259,6 @@ class PaymentStateWriterV1Test {
                 .willReturn(Optional.of(transaction));
         given(userRepository.findByIdWithParty(USER_ID)).willReturn(Optional.of(user()));
         given(passwordEncoder.matches("123456", "pin-hash")).willReturn(true);
-        given(paymentRequestHashGenerator.generatePaymentExecuteHash(transaction))
-                .willReturn(REQUEST_HASH);
     }
 
     private void givenRecoveryApplyBase(Transaction transaction) {
