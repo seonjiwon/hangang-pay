@@ -12,7 +12,7 @@
 
 | 사용자 — 충전 · 결제 | 가맹점 — 결제 내역 · 환전(정산) |
 |:---:|:---:|
-| ![사용자 시연](docs/readme/사용자시연.gif) | ![가맹점 시연](docs/readme/가맹점시연.gif) |
+| <img width="100%" alt="사용자 시연" src="https://github.com/user-attachments/assets/494adde9-6935-4f39-998b-1fd1402b929e" /> | <img width="100%" alt="가맹점 시연" src="https://github.com/user-attachments/assets/3b6db83e-a8a6-4199-bc26-d623c399e109" /> |
 
 ---
 
@@ -20,7 +20,7 @@
 
 위 결제가 실제로 블록체인에 기록된 트랜잭션입니다.
 
-![blockscout](docs/readme/blockscout.png)
+<img width="1582" height="1035" alt="Image" src="https://github.com/user-attachments/assets/8c6f7657-29b5-4e45-bd8a-03ea9ff36b4b" />
 
 ---
 
